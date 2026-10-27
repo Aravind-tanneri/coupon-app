@@ -10,6 +10,7 @@ import { csrfProtection } from "./middleware/csrf.js";
 import { sessionMiddleware } from "./middleware/session.js";
 import { authRouter } from "./modules/auth/auth.routes.js";
 import { userRouter } from "./modules/auth/user.routes.js";
+import { studentRouter } from "./modules/students/student.routes.js";
 import { NotFoundError } from "./lib/errors.js";
 
 export interface CreateAppOptions {
@@ -89,6 +90,7 @@ export function createApp(options: CreateAppOptions = {}): Express {
   // API v1 Routes
   app.use("/api/v1/auth", authRouter);
   app.use("/api/v1/users", userRouter);
+  app.use("/api/v1/students", studentRouter);
 
   // Custom / module route registration hook (for testing and extensions)
   if (options.setupRoutes) {

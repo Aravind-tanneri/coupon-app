@@ -19,6 +19,12 @@ export class ValidationError extends AppError {
   }
 }
 
+export class BadRequestError extends AppError {
+  constructor(message = "Bad request", details?: unknown) {
+    super(400, "BAD_REQUEST", message, details);
+  }
+}
+
 export class InvalidJsonError extends AppError {
   constructor(message = "Malformed JSON payload in request body") {
     super(400, "INVALID_JSON", message);
