@@ -1,0 +1,597 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ----------------------------------------------------
+// ENUMS (§21)
+// ----------------------------------------------------
+
+enum AdminRole {
+  SUPER_ADMIN
+  ADMIN
+  MESS_STAFF
+}
+
+enum MealType {
+  BREAKFAST
+  LUNCH
+  SNACKS
+  DINNER
+  SPECIAL_DINNER
+}
+
+enum CouponSource {
+  PURCHASE
+  ADMIN_GIFT
+}
+
+enum CouponStatus {
+  ACTIVE
+  REDEEMED
+  EXPIRED
+  REVOKED
+}
+
+enum OrderStatus {
+  CREATED
+  PAYMENT_PENDING
+  PAID
+  FAILED
+  EXPIRED
+  NEEDS_REVIEW
+}
+
+enum ReimbursementStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  INFO_REQUESTED
+  PAYMENT_PENDING
+  PAID
+  PAYMENT_FAILED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  UPI
+  BANK_TRANSFER
+  CASH
+  OTHER
+}
+
+enum ReimbursementPaymentStatus {
+  SUCCEEDED
+  FAILED
+  REVERSED
+}
+
+enum NotificationChannel {
+  EMAIL
+  WHATSAPP
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  DELIVERED
+  FAILED
+  BOUNCED
+}
+
+enum FeedbackCategory {
+  FOOD_QUALITY
+  MENU
+  SERVICE
+  OTHER
+}
+
+enum FeedbackStatus {
+  NEW
+  REVIEWED
+  RESOLVED
+}
+
+// ----------------------------------------------------
+// CORE ENTITIES (§21)
+// ----------------------------------------------------
+
+model Mess {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  name      String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  adminUsers            AdminUser[]
+  students              Student[]
+  menus                 Menu[]
+  couponProducts        CouponProduct[]
+  coupons               Coupon[]
+  feedbacks             Feedback[]
+  announcements         Announcement[]
+  reimbursementPolicies ReimbursementPolicy[]
+  reimbursementRequests ReimbursementRequest[]
+  giftBatches           GiftBatch[]
+  settings              Setting[]
+}
+
+model AdminUser {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  name         String
+  role         AdminRole
+  messId       String?
+  active       Boolean   @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  mess     Mess?     @relation(fields: [messId], references: [id])
+  sessions Session[]
+
+  @@index([messId])
+}
+
+model Session {
+  id          String   @id @default(cuid())
+  adminUserId String
+  tokenHash   String   @unique
+  expiresAt   DateTime
+  ip          String?
+  ua          String?
+  createdAt   DateTime @default(now())
+
+  adminUser AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+
+  @@index([adminUserId])
+}
+
+model Student {
+  id         String   @id @default(cuid())
+  rollNo     String   @unique
+  name       String
+  email      String   @unique
+  department String
+  messId     String
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  mess               Mess                   @relation(fields: [messId], references: [id])
+  whatsappIdentities WhatsAppIdentity[]
+  orders             CouponOrder[]
+  coupons            Coupon[]
+  feedbacks          Feedback[]
+  reimbursements     ReimbursementRequest[]
+  notifications      Notification[]
+
+  @@index([name])
+  @@index([messId])
+}
+
+model WhatsAppIdentity {
+  id         String    @id @default(cuid())
+  studentId  String
+  phoneE164  String    @unique
+  status     String    @default("ACTIVE")
+  verifiedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  student       Student        @relation(fields: [studentId], references: [id])
+  conversations Conversation[]
+
+  @@index([studentId])
+}
+
+model OtpChallenge {
+  id         String    @id @default(cuid())
+  phoneE164  String
+  studentId  String
+  codeHash   String
+  expiresAt  DateTime
+  attempts   Int       @default(0)
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([phoneE164, createdAt])
+}
+
+model Menu {
+  id          String   @id @default(cuid())
+  messId      String
+  date        DateTime @db.Date
+  mealType    MealType
+  notes       String?
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  mess  Mess       @relation(fields: [messId], references: [id])
+  items MenuItem[]
+
+  @@unique([messId, date, mealType])
+}
+
+model MenuItem {
+  id        String   @id @default(cuid())
+  menuId    String
+  name      String
+  isVeg     Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  menu Menu @relation(fields: [menuId], references: [id], onDelete: Cascade)
+
+  @@index([menuId])
+}
+
+model Announcement {
+  id          String    @id @default(cuid())
+  messId      String?
+  title       String
+  body        String
+  publishAt   DateTime  @default(now())
+  expiresAt   DateTime?
+  createdById String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  mess Mess? @relation(fields: [messId], references: [id])
+
+  @@index([publishAt])
+  @@index([messId])
+}
+
+model CouponProduct {
+  id         String   @id @default(cuid())
+  messId     String
+  code       String
+  mealType   MealType
+  pricePaise Int
+  active     Boolean  @default(true)
+  dailyCap   Int?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  mess    Mess          @relation(fields: [messId], references: [id])
+  orders  CouponOrder[]
+  coupons Coupon[]
+
+  @@unique([messId, code])
+}
+
+model CouponOrder {
+  id                String      @id @default(cuid())
+  studentId         String
+  productId         String
+  validDate         DateTime    @db.Date
+  amountPaise       Int
+  status            OrderStatus @default(CREATED)
+  razorpayOrderId   String?     @unique
+  razorpayPaymentId String?
+  orderToken        String      @unique
+  expiresAt         DateTime
+  idempotencyKey    String
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  student Student       @relation(fields: [studentId], references: [id])
+  product CouponProduct @relation(fields: [productId], references: [id])
+  coupon  Coupon?
+
+  @@unique([studentId, idempotencyKey])
+  @@index([status, createdAt])
+}
+
+model Coupon {
+  id           String       @id @default(cuid())
+  messId       String
+  studentId    String
+  productId    String?
+  mealType     MealType
+  validDate    DateTime     @db.Date
+  source       CouponSource
+  status       CouponStatus @default(ACTIVE)
+  tokenHash    String       @unique
+  shortCode    String       @unique
+  orderId      String?      @unique
+  giftItemId   String?      @unique
+  expiresAt    DateTime
+  redeemedAt   DateTime?
+  redeemedById String?
+  revokedAt    DateTime?
+  revokedById  String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  mess       Mess              @relation(fields: [messId], references: [id])
+  student    Student           @relation(fields: [studentId], references: [id])
+  product    CouponProduct?    @relation(fields: [productId], references: [id])
+  order      CouponOrder?      @relation(fields: [orderId], references: [id])
+  redemption CouponRedemption?
+
+  @@index([studentId, validDate])
+  @@index([status, validDate])
+  @@index([messId])
+}
+
+model CouponRedemption {
+  id       String   @id @default(cuid())
+  couponId String   @unique
+  staffId  String
+  at       DateTime @default(now())
+
+  coupon Coupon @relation(fields: [couponId], references: [id])
+}
+
+model WebhookEvent {
+  id          String    @id @default(cuid())
+  provider    String
+  eventId     String
+  receivedAt  DateTime  @default(now())
+  processedAt DateTime?
+
+  @@unique([provider, eventId])
+}
+
+model IdempotencyKey {
+  id          String   @id @default(cuid())
+  key         String
+  scope       String
+  requestHash String
+  response    Json
+  createdAt   DateTime @default(now())
+  expiresAt   DateTime
+
+  @@unique([scope, key])
+}
+
+model Feedback {
+  id          String           @id @default(cuid())
+  messId      String
+  studentId   String
+  category    FeedbackCategory
+  message     String           @db.VarChar(1000)
+  rating      Int?
+  mealType    MealType?
+  imageDocId  String?
+  isAnonymous Boolean          @default(false)
+  status      FeedbackStatus   @default(NEW)
+  adminNote   String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  mess    Mess    @relation(fields: [messId], references: [id])
+  student Student @relation(fields: [studentId], references: [id])
+
+  @@index([category, createdAt])
+  @@index([status])
+  @@index([messId])
+}
+
+model ReimbursementPolicy {
+  id                String    @id @default(cuid())
+  messId            String
+  dailyRatePaise    Int
+  minAbsenceDays    Int       @default(4)
+  effectiveFrom     DateTime  @db.Date
+  effectiveUntil    DateTime? @db.Date
+  claimDeadlineDays Int       @default(30)
+  maxAbsenceDays    Int?
+  documentRequired  Boolean   @default(false)
+  createdById       String
+  createdAt         DateTime  @default(now())
+
+  mess Mess @relation(fields: [messId], references: [id])
+
+  @@index([messId, effectiveFrom])
+}
+
+model ReimbursementRequest {
+  id                   String              @id @default(cuid())
+  publicRef            String              @unique
+  messId               String
+  studentId            String
+  startDate            DateTime            @db.Date
+  endDate              DateTime            @db.Date
+  countedDays          Int
+  rateAtClaimPaise     Int
+  calculationBreakdown Json
+  claimedAmountPaise   Int
+  approvedAmountPaise  Int?
+  status               ReimbursementStatus @default(DRAFT)
+  version              Int                 @default(1)
+  reason               String?
+  studentSnapshot      Json
+  encryptedPayout      String?
+  rejectionReason      String?
+  reviewedById         String?
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+
+  mess          Mess                         @relation(fields: [messId], references: [id])
+  student       Student                      @relation(fields: [studentId], references: [id])
+  documents     ReimbursementDocument[]
+  statusHistory ReimbursementStatusHistory[]
+  payments      ReimbursementPayment[]
+
+  @@index([status, createdAt])
+  @@index([studentId])
+  @@index([messId])
+}
+
+model ReimbursementDocument {
+  id           String   @id @default(cuid())
+  requestId    String
+  storageKey   String
+  mime         String
+  sizeBytes    Int
+  sha256       String
+  originalName String
+  scanStatus   String   @default("PENDING")
+  createdAt    DateTime @default(now())
+
+  request ReimbursementRequest @relation(fields: [requestId], references: [id])
+
+  @@index([requestId])
+}
+
+model ReimbursementStatusHistory {
+  id                  String               @id @default(cuid())
+  requestId           String
+  fromStatus          ReimbursementStatus?
+  toStatus            ReimbursementStatus
+  actorType           String
+  actorId             String
+  remarks             String?
+  approvedAmountPaise Int?
+  at                  DateTime             @default(now())
+
+  request ReimbursementRequest @relation(fields: [requestId], references: [id])
+
+  @@index([requestId, at])
+}
+
+model ReimbursementPayment {
+  id           String                     @id @default(cuid())
+  requestId    String
+  amountPaise  Int
+  method       PaymentMethod
+  reference    String
+  paidAt       DateTime
+  recordedById String
+  status       ReimbursementPaymentStatus @default(SUCCEEDED)
+  note         String?
+  createdAt    DateTime                   @default(now())
+
+  request ReimbursementRequest @relation(fields: [requestId], references: [id])
+
+  @@unique([requestId, reference])
+}
+
+model GiftBatch {
+  id             String     @id @default(cuid())
+  messId         String
+  createdById    String
+  mealDate       DateTime   @db.Date
+  message        String?
+  idempotencyKey String     @unique
+  status         String     @default("COMPLETED")
+  createdAt      DateTime   @default(now())
+
+  mess  Mess       @relation(fields: [messId], references: [id])
+  items GiftItem[]
+}
+
+model GiftItem {
+  id             String             @id @default(cuid())
+  batchId        String
+  studentId      String
+  couponId       String?            @unique
+  emailStatus    NotificationStatus @default(PENDING)
+  whatsappStatus NotificationStatus @default(PENDING)
+  createdAt      DateTime           @default(now())
+
+  batch GiftBatch @relation(fields: [batchId], references: [id])
+
+  @@unique([batchId, studentId])
+}
+
+model Conversation {
+  id         String   @id @default(cuid())
+  identityId String
+  workflow   String
+  step       String
+  data       Json
+  version    Int      @default(1)
+  status     String   @default("ACTIVE")
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  identity WhatsAppIdentity @relation(fields: [identityId], references: [id])
+
+  @@index([identityId])
+}
+
+model WhatsAppMessageLog {
+  id         String   @id @default(cuid())
+  wamid      String   @unique
+  identityId String?
+  direction  String
+  type       String
+  payload    Json?
+  receivedAt DateTime @default(now())
+
+  @@index([identityId, receivedAt])
+}
+
+model Notification {
+  id                String              @id @default(cuid())
+  studentId         String
+  channel           NotificationChannel
+  template          String
+  payload           Json
+  status            NotificationStatus  @default(PENDING)
+  providerMessageId String?
+  attempts          Int                 @default(0)
+  error             String?
+  nextAttemptAt     DateTime            @default(now())
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  student Student @relation(fields: [studentId], references: [id])
+
+  @@index([status, nextAttemptAt])
+}
+
+model AiToolCallLog {
+  id            String   @id @default(cuid())
+  studentId     String
+  tool          String
+  argsValidated Json
+  outcome       String
+  latencyMs     Int
+  createdAt     DateTime @default(now())
+
+  @@index([studentId, createdAt])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorType  String
+  actorId    String
+  action     String
+  entityType String
+  entityId   String
+  before     Json?
+  after      Json?
+  ip         String?
+  at         DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([actorId, at])
+}
+
+model Setting {
+  id        String   @id @default(cuid())
+  messId    String?
+  key       String
+  value     Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  mess Mess? @relation(fields: [messId], references: [id])
+
+  @@unique([messId, key])
+}

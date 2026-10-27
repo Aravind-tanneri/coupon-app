@@ -9,9 +9,12 @@
     "lint": "eslint \"src/**/*.ts\"",
     "test": "vitest run",
     "dev": "tsx watch src/server.ts",
-    "start": "node dist/server.js"
+    "start": "node dist/server.js",
+    "prisma:generate": "prisma generate --schema=../prisma/schema.prisma"
   },
   "dependencies": {
+    "@prisma/client": "^6.4.0",
+    "argon2": "^0.45.1",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "helmet": "^8.0.0",
