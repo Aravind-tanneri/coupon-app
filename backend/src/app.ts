@@ -1,9 +1,15 @@
 import express, { Express, Request, Response, NextFunction } from "express";
 import helmet from "helmet";
+import cookieParser from "cookie-parser";
 import { pinoHttp } from "pino-http";
 import { logger } from "./config/logger.js";
 import { requestIdMiddleware } from "./middleware/requestId.js";
 import { errorHandler } from "./middleware/errorHandler.js";
+import { corsMiddleware } from "./middleware/cors.js";
+import { csrfProtection } from "./middleware/csrf.js";
+import { sessionMiddleware } from "./middleware/session.js";
+import { authRouter } from "./modules/auth/auth.routes.js";
+import { userRouter } from "./modules/auth/user.routes.js";
 import { NotFoundError } from "./lib/errors.js";
 
 export interface CreateAppOptions {
@@ -29,7 +35,10 @@ export function createApp(options: CreateAppOptions = {}): Express {
     }),
   );
 
-  // Request ID
+  // Cross-Origin Resource Sharing
+  app.use(corsMiddleware);
+
+  // Request ID tracking
   app.use(requestIdMiddleware);
 
   // HTTP Request Logging
@@ -59,6 +68,15 @@ export function createApp(options: CreateAppOptions = {}): Express {
 
   app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
+  // Cookie parsing for server-side sessions
+  app.use(cookieParser());
+
+  // Session authentication middleware (populates req.adminUser & req.session)
+  app.use(sessionMiddleware);
+
+  // CSRF protection for mutating requests
+  app.use(csrfProtection);
+
   // Health check endpoint
   app.get("/healthz", (_req: Request, res: Response) => {
     res.status(200).json({
@@ -68,7 +86,11 @@ export function createApp(options: CreateAppOptions = {}): Express {
     });
   });
 
-  // Custom / module route registration
+  // API v1 Routes
+  app.use("/api/v1/auth", authRouter);
+  app.use("/api/v1/users", userRouter);
+
+  // Custom / module route registration hook (for testing and extensions)
   if (options.setupRoutes) {
     options.setupRoutes(app);
   }

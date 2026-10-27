@@ -25,12 +25,10 @@
     "*.{json,md,yml,yaml}": [
       "prettier --write"
     ],
-    "backend/src/**/*.ts": [
-      "eslint --fix",
+    "backend/**/*.{ts,json}": [
       "prettier --write"
     ],
-    "frontend/src/**/*.{ts,tsx}": [
-      "eslint --fix",
+    "frontend/**/*.{ts,tsx,json,css,html}": [
       "prettier --write"
     ]
   },
