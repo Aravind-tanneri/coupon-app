@@ -11,6 +11,8 @@ import { sessionMiddleware } from "./middleware/session.js";
 import { authRouter } from "./modules/auth/auth.routes.js";
 import { userRouter } from "./modules/auth/user.routes.js";
 import { studentRouter } from "./modules/students/student.routes.js";
+import { menuRouter } from "./modules/menus/menu.routes.js";
+import { feedbackRouter } from "./modules/feedback/feedback.routes.js";
 import { NotFoundError } from "./lib/errors.js";
 
 export interface CreateAppOptions {
@@ -91,6 +93,8 @@ export function createApp(options: CreateAppOptions = {}): Express {
   app.use("/api/v1/auth", authRouter);
   app.use("/api/v1/users", userRouter);
   app.use("/api/v1/students", studentRouter);
+  app.use("/api/v1/menus", menuRouter);
+  app.use("/api/v1/feedback", feedbackRouter);
 
   // Custom / module route registration hook (for testing and extensions)
   if (options.setupRoutes) {
