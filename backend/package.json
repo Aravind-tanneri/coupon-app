@@ -8,6 +8,8 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint \"src/**/*.ts\"",
     "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "dev": "tsx watch src/server.ts",
     "start": "node dist/server.js",
     "prisma:generate": "prisma generate --schema=../prisma/schema.prisma"
