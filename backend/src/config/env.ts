@@ -28,6 +28,7 @@ export const envSchema = z.object({
   RAZORPAY_WEBHOOK_SECRET: z.string().optional(),
 
   RESEND_API_KEY: z.string().optional(),
+  RESEND_WEBHOOK_SECRET: z.string().optional(),
   EMAIL_FROM: z.string().email().default("mess@campus.edu"),
 
   STORAGE_BUCKET: z.string().optional(),

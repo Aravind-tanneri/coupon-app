@@ -9,6 +9,7 @@ const WEBHOOK_PATHS = [
   "/api/v1/payments/razorpay/webhook",
   "/api/v1/whatsapp/webhook",
   "/whatsapp/webhook",
+  "/api/v1/notifications/email/webhook",
   "/notifications/email/webhook",
 ];
 
