@@ -6,7 +6,7 @@ import {
   RevokeGiftCouponSchema,
   ResendGiftNotificationsSchema,
 } from "./gift.schemas.js";
-import { UnauthorizedError } from "../../lib/errors.js";
+import { UnauthorizedError, ForbiddenError } from "../../lib/errors.js";
 
 export class GiftController {
   async issueBatch(req: Request, res: Response) {
@@ -23,6 +23,11 @@ export class GiftController {
       ...req.body,
       idempotencyKey,
     });
+
+    const actorMessId = req.adminUser.role === "SUPER_ADMIN" ? undefined : req.adminUser.messId;
+    if (actorMessId && input.messId !== actorMessId) {
+      throw new ForbiddenError("You cannot issue gift coupons for another mess");
+    }
 
     const result = await giftService.issueBatch(input, req.adminUser.id, req.ip);
 
@@ -53,7 +58,9 @@ export class GiftController {
     if (!req.adminUser) throw new UnauthorizedError();
 
     const id = String(req.params.id);
-    const result = await giftService.getBatchDetails(id);
+    const actorMessId =
+      req.adminUser.role === "SUPER_ADMIN" ? undefined : (req.adminUser.messId ?? undefined);
+    const result = await giftService.getBatchDetails(id, actorMessId);
     res.status(200).json({
       success: true,
       data: result,
@@ -65,12 +72,15 @@ export class GiftController {
 
     const couponId = String(req.params.couponId);
     const input = RevokeGiftCouponSchema.parse(req.body);
+    const actorMessId =
+      req.adminUser.role === "SUPER_ADMIN" ? undefined : (req.adminUser.messId ?? undefined);
 
     const result = await giftService.revokeGiftCoupon(
       couponId,
       req.adminUser.id,
       input.reason,
       req.ip,
+      actorMessId,
     );
 
     res.status(200).json({

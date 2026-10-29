@@ -181,7 +181,15 @@ export class ReimbursementController {
     const docId = Array.isArray(docIdParam) ? docIdParam[0] : docIdParam;
     if (!id || !docId) throw new BadRequestError("Claim ID and Document ID are required");
 
-    const result = await reimbursementService.getDocumentUrl(id, docId, req.adminUser.id, req.ip);
+    const actorMessId =
+      req.adminUser.role === "SUPER_ADMIN" ? undefined : (req.adminUser.messId ?? undefined);
+    const result = await reimbursementService.getDocumentUrl(
+      id,
+      docId,
+      req.adminUser.id,
+      req.ip,
+      actorMessId,
+    );
     res.status(200).json({ success: true, data: result });
   }
 }

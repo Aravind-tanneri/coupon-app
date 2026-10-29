@@ -18,6 +18,7 @@ import { StudentsPage } from "./pages/StudentsPage";
 import { UsersPage } from "./pages/UsersPage";
 import { AuditPage } from "./pages/AuditPage";
 import { SettingsPage } from "./pages/SettingsPage";
+import { CouponPassPage } from "./pages/CouponPassPage";
 
 export const AppRoutes: React.FC = () => {
   return (
@@ -26,6 +27,7 @@ export const AppRoutes: React.FC = () => {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/buy" element={<StudentPurchasePage />} />
       <Route path="/pay/:orderToken" element={<CheckoutPage />} />
+      <Route path="/c/:couponToken" element={<CouponPassPage />} />
 
       {/* Protected Routes inside App Shell Layout */}
       <Route

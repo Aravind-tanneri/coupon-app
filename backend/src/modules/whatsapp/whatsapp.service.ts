@@ -246,10 +246,12 @@ export class WhatsAppService {
     const computedSignature = crypto.createHmac("sha256", appSecret).update(rawBody).digest("hex");
 
     try {
-      return crypto.timingSafeEqual(
-        Buffer.from(expectedSignature, "hex"),
-        Buffer.from(computedSignature, "hex"),
-      );
+      const expectedBuf = Buffer.from(expectedSignature, "hex");
+      const computedBuf = Buffer.from(computedSignature, "hex");
+      if (expectedBuf.length !== computedBuf.length) {
+        return false;
+      }
+      return crypto.timingSafeEqual(expectedBuf, computedBuf);
     } catch {
       return false;
     }

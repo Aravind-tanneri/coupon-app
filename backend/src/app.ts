@@ -23,6 +23,8 @@ import {
 import { giftRouter } from "./modules/gifts/gift.routes.js";
 import { notificationRouter } from "./modules/notifications/notification.routes.js";
 import { whatsAppRouter } from "./modules/whatsapp/whatsapp.routes.js";
+import { couponController } from "./modules/coupons/coupon.controller.js";
+import { checkPublicTokenRateLimit } from "./middleware/rateLimit.js";
 import { NotFoundError } from "./lib/errors.js";
 
 export interface CreateAppOptions {
@@ -90,6 +92,21 @@ export function createApp(options: CreateAppOptions = {}): Express {
   // CSRF protection for mutating requests
   app.use(csrfProtection);
 
+  // Cache and Referrer headers for public token / payment / coupon routes (§23)
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    if (
+      req.path.startsWith("/c/") ||
+      req.path.startsWith("/pay/") ||
+      req.path.startsWith("/api/v1/coupons/public") ||
+      req.path.startsWith("/api/v1/payments")
+    ) {
+      res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
+      res.setHeader("Pragma", "no-cache");
+      res.setHeader("Referrer-Policy", "no-referrer");
+    }
+    next();
+  });
+
   // Health check endpoint
   app.get("/healthz", (_req: Request, res: Response) => {
     res.status(200).json({
@@ -98,6 +115,15 @@ export function createApp(options: CreateAppOptions = {}): Express {
       service: "campus-mess-backend",
     });
   });
+
+  // Public coupon pass display route (§22, §23)
+  app.get(
+    "/c/:token",
+    checkPublicTokenRateLimit(),
+    (req: Request, res: Response, next: NextFunction) => {
+      couponController.getPublicCoupon(req, res).catch(next);
+    },
+  );
 
   // Custom / module route registration hook (for testing and extensions)
   if (options.setupRoutes) {

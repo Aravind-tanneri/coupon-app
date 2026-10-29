@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import { Prisma, CouponStatus } from "@prisma/client";
 import { prisma } from "../../lib/prisma.js";
-import { BadRequestError, NotFoundError, ConflictError } from "../../lib/errors.js";
+import { BadRequestError, NotFoundError, ConflictError, ForbiddenError } from "../../lib/errors.js";
 import { generateToken, hashToken, generateShortCode } from "../../lib/tokens.js";
 import { parseDateIST, getTodayIST, formatDateIST } from "../../lib/dates-ist.js";
 import { auditService } from "../audit/audit.service.js";
@@ -389,7 +389,7 @@ export class GiftService {
   /**
    * Retrieves single batch with student details and per-coupon redemption status (§20.2, §20.5).
    */
-  async getBatchDetails(batchId: string) {
+  async getBatchDetails(batchId: string, actorMessId?: string) {
     const batch = await prisma.giftBatch.findUnique({
       where: { id: batchId },
       include: {
@@ -402,6 +402,10 @@ export class GiftService {
 
     if (!batch) {
       throw new NotFoundError(`Gift batch '${batchId}' not found`);
+    }
+
+    if (actorMessId && batch.messId !== actorMessId) {
+      throw new ForbiddenError("You cannot access gift batches from another mess");
     }
 
     const studentIds = batch.items.map((i) => i.studentId);
@@ -488,7 +492,13 @@ export class GiftService {
    * Revokes an active gift coupon with atomic guard (§19, §20.4).
    * Refuses revocation if coupon is already REDEEMED.
    */
-  async revokeGiftCoupon(couponId: string, actorId: string, reason?: string, ip?: string) {
+  async revokeGiftCoupon(
+    couponId: string,
+    actorId: string,
+    reason?: string,
+    ip?: string,
+    actorMessId?: string,
+  ) {
     const coupon = await prisma.coupon.findUnique({
       where: { id: couponId },
       include: {
@@ -499,6 +509,10 @@ export class GiftService {
 
     if (!coupon) {
       throw new NotFoundError(`Coupon '${couponId}' not found`);
+    }
+
+    if (actorMessId && coupon.messId !== actorMessId) {
+      throw new ForbiddenError("You cannot revoke coupons from another mess");
     }
 
     if (coupon.source !== "ADMIN_GIFT") {

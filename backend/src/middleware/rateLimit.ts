@@ -119,3 +119,52 @@ export function checkLoginRateLimit(limiter: LoginRateLimiter = loginRateLimiter
     next();
   };
 }
+
+export class IpRateLimiter {
+  private requests = new Map<string, { count: number; resetAt: number }>();
+  private readonly maxRequests: number;
+  private readonly windowMs: number;
+
+  constructor(options: { maxRequests?: number; windowMs?: number } = {}) {
+    this.maxRequests = options.maxRequests ?? 60;
+    this.windowMs = options.windowMs ?? 60 * 1000;
+  }
+
+  public check(ip: string): boolean {
+    const now = Date.now();
+    const entry = this.requests.get(ip);
+    if (!entry || now > entry.resetAt) {
+      this.requests.set(ip, { count: 1, resetAt: now + this.windowMs });
+      return true;
+    }
+    if (entry.count >= this.maxRequests) {
+      return false;
+    }
+    entry.count += 1;
+    return true;
+  }
+
+  public reset(ip: string): void {
+    this.requests.delete(ip);
+  }
+
+  public clearAll(): void {
+    this.requests.clear();
+  }
+}
+
+export const publicTokenRateLimiter = new IpRateLimiter({ maxRequests: 30, windowMs: 60 * 1000 });
+
+export function checkPublicTokenRateLimit(limiter: IpRateLimiter = publicTokenRateLimiter) {
+  return (req: Request, _res: Response, next: NextFunction): void => {
+    const ip = req.ip || req.socket.remoteAddress || "unknown";
+    if (!limiter.check(ip)) {
+      return next(
+        new TooManyRequestsError(
+          "Too many token lookup requests from this IP. Please wait a moment.",
+        ),
+      );
+    }
+    next();
+  };
+}

@@ -163,6 +163,20 @@ export class CouponController {
       data: summary,
     });
   }
+
+  async getPublicCoupon(req: Request, res: Response) {
+    const tokenParam = req.params.token;
+    const token = Array.isArray(tokenParam) ? tokenParam[0] : tokenParam;
+    if (!token) {
+      throw new BadRequestError("Token is required");
+    }
+
+    const data = await couponService.getPublicCoupon(token);
+    res.status(200).json({
+      success: true,
+      data,
+    });
+  }
 }
 
 export const couponController = new CouponController();

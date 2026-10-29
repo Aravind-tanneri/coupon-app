@@ -2,6 +2,7 @@ import { Prisma, CouponStatus, OrderStatus } from "@prisma/client";
 import { prisma } from "../../lib/prisma.js";
 import { BadRequestError, NotFoundError, BusinessRuleError } from "../../lib/errors.js";
 import { generateToken, hashToken, generateShortCode } from "../../lib/tokens.js";
+import { formatDateIST } from "../../lib/dates-ist.js";
 import { auditService } from "../audit/audit.service.js";
 import { paymentService } from "./payment.service.js";
 import {
@@ -519,6 +520,58 @@ export class CouponService {
       totalRedeemed,
       totalRevoked,
       totalRevenuePaise: paidOrders._sum.amountPaise || 0,
+    };
+  }
+
+  /**
+   * Public coupon display query (§22, §23).
+   * Safe non-PII presentation only. Uniform 404 on missing/invalid token.
+   */
+  async getPublicCoupon(tokenOrShortCode: string) {
+    if (!tokenOrShortCode || typeof tokenOrShortCode !== "string") {
+      throw new NotFoundError("Coupon not found or invalid token");
+    }
+
+    const cleanInput = tokenOrShortCode.trim();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let coupon: any = null;
+
+    if (cleanInput.length > 16) {
+      // Hex token string
+      const tokenHash = hashToken(cleanInput);
+      coupon = await prisma.coupon.findUnique({
+        where: { tokenHash },
+        include: {
+          product: { include: { mess: true } },
+          mess: true,
+        },
+      });
+    }
+
+    if (!coupon) {
+      // Fallback or direct check by shortCode
+      coupon = await prisma.coupon.findUnique({
+        where: { shortCode: cleanInput.toUpperCase() },
+        include: {
+          product: { include: { mess: true } },
+          mess: true,
+        },
+      });
+    }
+
+    if (!coupon) {
+      throw new NotFoundError("Coupon not found or invalid token");
+    }
+
+    return {
+      shortCode: coupon.shortCode,
+      messName: coupon.mess?.name ?? coupon.product?.mess?.name ?? "Campus Dining",
+      occasion: coupon.occasion ?? coupon.product?.name ?? "Special Meal",
+      mealDate: formatDateIST(coupon.mealDate ?? coupon.validDate),
+      mealType: coupon.mealType,
+      status: coupon.status,
+      expiresAt: coupon.expiresAt?.toISOString() ?? null,
+      redeemedAt: coupon.redeemedAt?.toISOString() ?? null,
     };
   }
 }

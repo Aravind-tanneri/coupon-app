@@ -1,6 +1,11 @@
 import { Prisma, ReimbursementStatus } from "@prisma/client";
 import { prisma } from "../../lib/prisma.js";
-import { NotFoundError, BusinessRuleError, StaleVersionError } from "../../lib/errors.js";
+import {
+  NotFoundError,
+  BusinessRuleError,
+  StaleVersionError,
+  ForbiddenError,
+} from "../../lib/errors.js";
 import { parseDateIST, formatDateIST, getTodayISTString } from "../../lib/dates-ist.js";
 import { generateShortCode } from "../../lib/tokens.js";
 import { encryptPayout, decryptPayout, maskPayout } from "../../lib/crypto.js";
@@ -716,7 +721,13 @@ export class ReimbursementService {
    * Generates a 60-second signed URL for viewing an uploaded reimbursement document.
    * Audited (§23).
    */
-  async getDocumentUrl(requestId: string, docId: string, adminId: string, ip?: string) {
+  async getDocumentUrl(
+    requestId: string,
+    docId: string,
+    adminId: string,
+    ip?: string,
+    actorMessId?: string,
+  ) {
     const doc = await prisma.reimbursementDocument.findFirst({
       where: { id: docId, requestId },
       include: { request: true },
@@ -724,6 +735,10 @@ export class ReimbursementService {
 
     if (!doc) {
       throw new NotFoundError(`Document ${docId} not found for claim ${requestId}`);
+    }
+
+    if (actorMessId && doc.request.messId !== actorMessId) {
+      throw new ForbiddenError("You cannot view documents from another mess");
     }
 
     await auditService.log({
