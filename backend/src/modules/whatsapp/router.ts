@@ -3,6 +3,7 @@ import { prisma } from "../../lib/prisma.js";
 import { logger } from "../../config/logger.js";
 import { whatsAppService } from "./whatsapp.service.js";
 import { menuFormatter } from "./workflows/menu.formatter.js";
+import { couponWorkflow } from "./workflows/coupon.workflow.js";
 import { aiService } from "../ai/ai.service.js";
 import { getTodayISTString, parseDateIST, addDaysIST, formatDateIST } from "../../lib/dates-ist.js";
 import { InjectedStudentContext } from "../ai/gemini.types.js";
@@ -87,6 +88,20 @@ export class WhatsAppRouter {
       await this.sendTomorrowMenu(context, phone, db);
       return;
     }
+    if (
+      upperText === "COUPON" ||
+      upperText === "COUPONS" ||
+      upperText === "PASS" ||
+      upperText === "PASSES" ||
+      upperText === "MY COUPONS"
+    ) {
+      await this.sendCoupons(context, phone);
+      return;
+    }
+    if (upperText === "BUY" || upperText === "BUY COUPON" || upperText === "PURCHASE") {
+      await this.sendBuyProducts(context, phone, db);
+      return;
+    }
     if (upperText === "HELP" || upperText === "COMMANDS") {
       await this.sendHelpMessage(phone);
       return;
@@ -159,6 +174,45 @@ export class WhatsAppRouter {
       return;
     }
 
+    if (toolName === "get_my_coupons" || toolName === "get_my_gift_coupons") {
+      await this.sendCoupons(context, phone);
+      return;
+    }
+
+    if (toolName === "get_coupon_qr" && result && typeof result === "object") {
+      const res = result as { shortCode?: string; error?: string; message?: string };
+      if (res.shortCode) {
+        await this.sendCouponQr(context, phone, res.shortCode);
+      } else {
+        await whatsAppService
+          .getProvider()
+          .sendText(phone, res.message ?? "Coupon not found for QR display.");
+      }
+      return;
+    }
+
+    if (toolName === "start_coupon_purchase" && result && typeof result === "object") {
+      const res = result as {
+        productCode?: string;
+        date?: string;
+        error?: string;
+        message?: string;
+      };
+      if (res.productCode) {
+        await this.handleBuyProduct(context, phone, res.productCode, res.date);
+      } else {
+        await whatsAppService
+          .getProvider()
+          .sendText(phone, res.message ?? "Unable to initiate coupon purchase.");
+      }
+      return;
+    }
+
+    if (toolName === "list_coupon_products") {
+      await this.sendBuyProducts(context, phone, db);
+      return;
+    }
+
     // Generic text reply for other tools
     await whatsAppService
       .getProvider()
@@ -174,7 +228,8 @@ export class WhatsAppRouter {
     phone: string,
     db: Prisma.TransactionClient | typeof prisma,
   ): Promise<void> {
-    const [action] = actionId.split(":");
+    const [action, ...rest] = actionId.split(":");
+    const param = rest.join(":");
 
     switch (action) {
       case "MENU_MAIN":
@@ -193,6 +248,30 @@ export class WhatsAppRouter {
         await this.sendUpcomingMenus(context, phone, db);
         break;
 
+      case "MY_COUPONS":
+        await this.sendCoupons(context, phone);
+        break;
+
+      case "SHOW_QR":
+        if (param) {
+          await this.sendCouponQr(context, phone, param);
+        } else {
+          await this.sendCoupons(context, phone);
+        }
+        break;
+
+      case "BUY_COUPON":
+        await this.sendBuyProducts(context, phone, db);
+        break;
+
+      case "BUY_PRODUCT":
+        if (param) {
+          await this.handleBuyProduct(context, phone, param);
+        } else {
+          await this.sendBuyProducts(context, phone, db);
+        }
+        break;
+
       case "HELP":
         await this.sendHelpMessage(phone);
         break;
@@ -204,6 +283,85 @@ export class WhatsAppRouter {
           { id: "HELP", title: "Help & Commands" },
         ]);
         break;
+    }
+  }
+
+  private async sendCoupons(context: InjectedStudentContext, phone: string): Promise<void> {
+    const formatted = await couponWorkflow.listMyCoupons(context.studentId);
+    if (formatted.buttons && formatted.buttons.length > 0) {
+      await whatsAppService
+        .getProvider()
+        .sendButtons(phone, formatted.text, formatted.buttons, { header: "Meal Passes" });
+    } else {
+      await whatsAppService.getProvider().sendText(phone, formatted.text);
+    }
+  }
+
+  private async sendCouponQr(
+    context: InjectedStudentContext,
+    phone: string,
+    shortCode: string,
+  ): Promise<void> {
+    try {
+      const qr = await couponWorkflow.generateCouponQr(context.studentId, shortCode);
+      await whatsAppService.getProvider().sendImage(phone, qr.imageBuffer, { caption: qr.caption });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to load coupon QR.";
+      await whatsAppService.getProvider().sendText(phone, `⚠️ ${msg}`);
+    }
+  }
+
+  private async sendBuyProducts(
+    context: InjectedStudentContext,
+    phone: string,
+    db: Prisma.TransactionClient | typeof prisma,
+  ): Promise<void> {
+    const products = await db.couponProduct.findMany({
+      where: { messId: context.messId, active: true },
+      orderBy: { mealType: "asc" },
+    });
+
+    if (products.length === 0) {
+      await whatsAppService
+        .getProvider()
+        .sendText(phone, "There are currently no active coupon products available for purchase.");
+      return;
+    }
+
+    const buttons = products.slice(0, 3).map((p) => ({
+      id: `BUY_PRODUCT:${p.code}`,
+      title: `${p.mealType} (₹${(p.pricePaise / 100).toFixed(0)})`,
+    }));
+
+    const text = [
+      "🎟️ *Buy Extra Meal Coupon*",
+      "Select a meal pass below to generate a secure checkout link:",
+      "",
+      ...products.map((p) => `• *${p.code}* (${p.mealType}): ₹${(p.pricePaise / 100).toFixed(2)}`),
+    ].join("\n");
+
+    await whatsAppService
+      .getProvider()
+      .sendButtons(phone, text, buttons, { header: "Coupon Store" });
+  }
+
+  private async handleBuyProduct(
+    context: InjectedStudentContext,
+    phone: string,
+    productCode: string,
+    targetDateStr?: string,
+  ): Promise<void> {
+    try {
+      const result = await couponWorkflow.initiatePurchase(
+        context.studentId,
+        context.messId,
+        productCode,
+        targetDateStr,
+      );
+      await whatsAppService.getProvider().sendText(phone, result.text);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to initiate coupon purchase.";
+      await whatsAppService.getProvider().sendText(phone, `⚠️ ${msg}`);
     }
   }
 
