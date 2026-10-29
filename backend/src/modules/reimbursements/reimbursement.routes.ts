@@ -83,6 +83,15 @@ reimbursementRouter.post(
   },
 );
 
+reimbursementRouter.get(
+  "/:id/documents/:docId/url",
+  requireAuth,
+  requirePermission("reimbursement:view"),
+  (req, res, next) => {
+    reimbursementController.getDocumentUrl(req, res).catch(next);
+  },
+);
+
 // Policy sub-routes
 export const policyRouter = Router();
 

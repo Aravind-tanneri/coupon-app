@@ -172,6 +172,18 @@ export class ReimbursementController {
     );
     res.status(201).json({ success: true, data: result });
   }
+
+  async getDocumentUrl(req: Request, res: Response) {
+    if (!req.adminUser) throw new UnauthorizedError();
+    const idParam = req.params.id;
+    const docIdParam = req.params.docId;
+    const id = Array.isArray(idParam) ? idParam[0] : idParam;
+    const docId = Array.isArray(docIdParam) ? docIdParam[0] : docIdParam;
+    if (!id || !docId) throw new BadRequestError("Claim ID and Document ID are required");
+
+    const result = await reimbursementService.getDocumentUrl(id, docId, req.adminUser.id, req.ip);
+    res.status(200).json({ success: true, data: result });
+  }
 }
 
 export const reimbursementController = new ReimbursementController();

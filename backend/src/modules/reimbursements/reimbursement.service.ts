@@ -229,6 +229,22 @@ export class ReimbursementService {
         },
       });
 
+      // Notification hook (Phase 10)
+      await tx.notification.create({
+        data: {
+          studentId: claim.studentId,
+          channel: "WHATSAPP",
+          template: "reimbursement_submitted",
+          payload: {
+            claimRef: claim.publicRef,
+            status: ReimbursementStatus.SUBMITTED,
+            claimedAmountPaise: updated.claimedAmountPaise,
+            countedDays: updated.countedDays,
+          },
+          status: "PENDING",
+        },
+      });
+
       await auditService.log({
         actorType: "STUDENT",
         actorId: studentId,
@@ -372,6 +388,22 @@ export class ReimbursementService {
         },
       });
 
+      // Notification hook
+      await tx.notification.create({
+        data: {
+          studentId: claim.studentId,
+          channel: "WHATSAPP",
+          template: "reimbursement_approved",
+          payload: {
+            claimRef: claim.publicRef,
+            status: ReimbursementStatus.APPROVED,
+            approvedAmountPaise: input.approvedAmountPaise,
+            remarks: input.remarks,
+          },
+          status: "PENDING",
+        },
+      });
+
       await auditService.log({
         actorType: "ADMIN",
         actorId: adminId,
@@ -433,6 +465,21 @@ export class ReimbursementService {
         },
       });
 
+      // Notification hook
+      await tx.notification.create({
+        data: {
+          studentId: claim.studentId,
+          channel: "WHATSAPP",
+          template: "reimbursement_rejected",
+          payload: {
+            claimRef: claim.publicRef,
+            status: ReimbursementStatus.REJECTED,
+            reason: input.reason,
+          },
+          status: "PENDING",
+        },
+      });
+
       await auditService.log({
         actorType: "ADMIN",
         actorId: adminId,
@@ -487,6 +534,21 @@ export class ReimbursementService {
           actorType: "ADMIN",
           actorId: adminId,
           remarks: input.message,
+        },
+      });
+
+      // Notification hook
+      await tx.notification.create({
+        data: {
+          studentId: claim.studentId,
+          channel: "WHATSAPP",
+          template: "reimbursement_info_requested",
+          payload: {
+            claimRef: claim.publicRef,
+            status: ReimbursementStatus.INFO_REQUESTED,
+            message: input.message,
+          },
+          status: "PENDING",
         },
       });
 
@@ -588,6 +650,23 @@ export class ReimbursementService {
             remarks: `Payment recorded: ₹${(input.amountPaise / 100).toFixed(2)} (${input.reference})`,
           },
         });
+
+        if (nextStatus === ReimbursementStatus.PAID) {
+          await tx.notification.create({
+            data: {
+              studentId: claim.studentId,
+              channel: "WHATSAPP",
+              template: "reimbursement_paid",
+              payload: {
+                claimRef: claim.publicRef,
+                status: ReimbursementStatus.PAID,
+                amountPaise: input.amountPaise,
+                reference: input.reference,
+              },
+              status: "PENDING",
+            },
+          });
+        }
       }
 
       await auditService.log({
@@ -607,6 +686,44 @@ export class ReimbursementService {
 
       return payment;
     });
+  }
+
+  /**
+   * Generates a 60-second signed URL for viewing an uploaded reimbursement document.
+   * Audited (§23).
+   */
+  async getDocumentUrl(requestId: string, docId: string, adminId: string, ip?: string) {
+    const doc = await prisma.reimbursementDocument.findFirst({
+      where: { id: docId, requestId },
+      include: { request: true },
+    });
+
+    if (!doc) {
+      throw new NotFoundError(`Document ${docId} not found for claim ${requestId}`);
+    }
+
+    await auditService.log({
+      actorType: "ADMIN",
+      actorId: adminId,
+      action: "REIMBURSEMENT_DOCUMENT_VIEWED",
+      entityType: "ReimbursementDocument",
+      entityId: doc.id,
+      after: {
+        requestId,
+        storageKey: doc.storageKey,
+        originalName: doc.originalName,
+      },
+      ip,
+    });
+
+    const expiresAt = new Date(Date.now() + 60 * 1000).toISOString();
+    return {
+      url: `/api/v1/reimbursements/${requestId}/documents/${docId}/file?expires=${encodeURIComponent(expiresAt)}`,
+      expiresAt,
+      originalName: doc.originalName,
+      mime: doc.mime,
+      sizeBytes: doc.sizeBytes,
+    };
   }
 
   /**

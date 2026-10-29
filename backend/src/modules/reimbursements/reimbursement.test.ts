@@ -29,6 +29,9 @@ vi.mock("../../lib/prisma.js", () => {
       reimbursementPayment: {
         create: vi.fn(),
       },
+      notification: {
+        create: vi.fn().mockResolvedValue({ id: "notif-1" }),
+      },
       $transaction: vi.fn(async (cb) => {
         if (typeof cb === "function") {
           return cb(prisma);
