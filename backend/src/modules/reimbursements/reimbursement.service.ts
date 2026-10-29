@@ -1,6 +1,6 @@
 import { Prisma, ReimbursementStatus } from "@prisma/client";
 import { prisma } from "../../lib/prisma.js";
-import { NotFoundError, BusinessRuleError } from "../../lib/errors.js";
+import { NotFoundError, BusinessRuleError, StaleVersionError } from "../../lib/errors.js";
 import { parseDateIST, formatDateIST, getTodayISTString } from "../../lib/dates-ist.js";
 import { generateShortCode } from "../../lib/tokens.js";
 import { encryptPayout, decryptPayout, maskPayout } from "../../lib/crypto.js";
@@ -312,37 +312,49 @@ export class ReimbursementService {
     assertVersionMatch(claim.version, expectedVersion);
     validateTransition(claim.status, ReimbursementStatus.UNDER_REVIEW, claim.claimedAmountPaise);
 
-    return prisma.$transaction(async (tx) => {
-      const updated = await tx.reimbursementRequest.update({
-        where: { id: claimId, version: claim.version },
-        data: {
-          status: ReimbursementStatus.UNDER_REVIEW,
-          reviewedById: adminId,
-          version: { increment: 1 },
-        },
-      });
+    try {
+      return await prisma.$transaction(async (tx) => {
+        const updated = await tx.reimbursementRequest.update({
+          where: { id: claimId, version: claim.version },
+          data: {
+            status: ReimbursementStatus.UNDER_REVIEW,
+            reviewedById: adminId,
+            version: { increment: 1 },
+          },
+        });
 
-      await tx.reimbursementStatusHistory.create({
-        data: {
-          requestId: claimId,
-          fromStatus: claim.status,
-          toStatus: ReimbursementStatus.UNDER_REVIEW,
+        await tx.reimbursementStatusHistory.create({
+          data: {
+            requestId: claimId,
+            fromStatus: claim.status,
+            toStatus: ReimbursementStatus.UNDER_REVIEW,
+            actorType: "ADMIN",
+            actorId: adminId,
+          },
+        });
+
+        await auditService.log({
           actorType: "ADMIN",
           actorId: adminId,
-        },
-      });
+          action: "REIMBURSEMENT_REVIEW_STARTED",
+          entityType: "ReimbursementRequest",
+          entityId: claimId,
+          ip,
+        });
 
-      await auditService.log({
-        actorType: "ADMIN",
-        actorId: adminId,
-        action: "REIMBURSEMENT_REVIEW_STARTED",
-        entityType: "ReimbursementRequest",
-        entityId: claimId,
-        ip,
+        return updated;
       });
-
-      return updated;
-    });
+    } catch (err) {
+      if (
+        (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2025") ||
+        (typeof err === "object" && err !== null && (err as { code?: string }).code === "P2025")
+      ) {
+        throw new StaleVersionError(
+          "Claim was modified concurrently by another user. Please reload the claim.",
+        );
+      }
+      throw err;
+    }
   }
 
   /**
@@ -365,60 +377,72 @@ export class ReimbursementService {
     assertVersionMatch(claim.version, input.version);
     validateTransition(claim.status, ReimbursementStatus.APPROVED, claim.claimedAmountPaise, input);
 
-    return prisma.$transaction(async (tx) => {
-      const updated = await tx.reimbursementRequest.update({
-        where: { id: claimId, version: claim.version },
-        data: {
-          status: ReimbursementStatus.APPROVED,
-          approvedAmountPaise: input.approvedAmountPaise,
-          reviewedById: adminId,
-          version: { increment: 1 },
-        },
-      });
+    try {
+      return await prisma.$transaction(async (tx) => {
+        const updated = await tx.reimbursementRequest.update({
+          where: { id: claimId, version: claim.version },
+          data: {
+            status: ReimbursementStatus.APPROVED,
+            approvedAmountPaise: input.approvedAmountPaise,
+            reviewedById: adminId,
+            version: { increment: 1 },
+          },
+        });
 
-      await tx.reimbursementStatusHistory.create({
-        data: {
-          requestId: claimId,
-          fromStatus: claim.status,
-          toStatus: ReimbursementStatus.APPROVED,
+        await tx.reimbursementStatusHistory.create({
+          data: {
+            requestId: claimId,
+            fromStatus: claim.status,
+            toStatus: ReimbursementStatus.APPROVED,
+            actorType: "ADMIN",
+            actorId: adminId,
+            remarks: input.remarks,
+            approvedAmountPaise: input.approvedAmountPaise,
+          },
+        });
+
+        // Notification hook
+        await tx.notification.create({
+          data: {
+            studentId: claim.studentId,
+            channel: "WHATSAPP",
+            template: "reimbursement_approved",
+            payload: {
+              claimRef: claim.publicRef,
+              status: ReimbursementStatus.APPROVED,
+              approvedAmountPaise: input.approvedAmountPaise,
+              remarks: input.remarks,
+            },
+            status: "PENDING",
+          },
+        });
+
+        await auditService.log({
           actorType: "ADMIN",
           actorId: adminId,
-          remarks: input.remarks,
-          approvedAmountPaise: input.approvedAmountPaise,
-        },
-      });
-
-      // Notification hook
-      await tx.notification.create({
-        data: {
-          studentId: claim.studentId,
-          channel: "WHATSAPP",
-          template: "reimbursement_approved",
-          payload: {
-            claimRef: claim.publicRef,
-            status: ReimbursementStatus.APPROVED,
+          action: "REIMBURSEMENT_APPROVED",
+          entityType: "ReimbursementRequest",
+          entityId: claimId,
+          after: {
             approvedAmountPaise: input.approvedAmountPaise,
             remarks: input.remarks,
           },
-          status: "PENDING",
-        },
-      });
+          ip,
+        });
 
-      await auditService.log({
-        actorType: "ADMIN",
-        actorId: adminId,
-        action: "REIMBURSEMENT_APPROVED",
-        entityType: "ReimbursementRequest",
-        entityId: claimId,
-        after: {
-          approvedAmountPaise: input.approvedAmountPaise,
-          remarks: input.remarks,
-        },
-        ip,
+        return updated;
       });
-
-      return updated;
-    });
+    } catch (err) {
+      if (
+        (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2025") ||
+        (typeof err === "object" && err !== null && (err as { code?: string }).code === "P2025")
+      ) {
+        throw new StaleVersionError(
+          "Claim was modified concurrently by another user. Please reload the claim.",
+        );
+      }
+      throw err;
+    }
   }
 
   /**

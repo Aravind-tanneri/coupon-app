@@ -152,12 +152,26 @@ export class PaymentService {
       return { received: true, duplicate: true };
     }
 
-    await prisma.webhookEvent.create({
-      data: {
-        provider: "razorpay",
-        eventId,
-      },
-    });
+    try {
+      await prisma.webhookEvent.create({
+        data: {
+          provider: "razorpay",
+          eventId,
+        },
+      });
+    } catch (err: unknown) {
+      if (
+        (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") ||
+        (typeof err === "object" && err !== null && (err as { code?: string }).code === "P2002")
+      ) {
+        logger.info(
+          { eventId },
+          "Duplicate Razorpay webhook event caught via unique constraint race",
+        );
+        return { received: true, duplicate: true };
+      }
+      throw err;
+    }
 
     const eventName = payload["event"] as string;
     logger.info({ eventId, eventName }, "Processing Razorpay webhook event");

@@ -243,4 +243,54 @@ describe("Authoritative Reimbursement Calculator (§16 Executable Spec)", () => 
     expect(res.countedDays).toBe(7);
     expect(res.claimablePaise).toBe(7 * 13100);
   });
+
+  it("enforces maxAbsenceDays cap when configured in policy", () => {
+    // 10 Oct to 25 Oct = 14 counted days; policy caps at 10 days
+    const cappedPolicy: PolicyDTO = {
+      ...defaultPolicy,
+      maxAbsenceDays: 10,
+    };
+
+    const res = calculateReimbursement({
+      startDate: "2026-10-10",
+      endDate: "2026-10-25",
+      today: "2026-10-26",
+      policies: [cappedPolicy],
+    });
+
+    expect(res.eligible).toBe(true);
+    expect(res.countedDays).toBe(14);
+    expect(res.claimablePaise).toBe(10 * 13100);
+    expect(res.segments[0]!.days).toBe(10);
+  });
+
+  it("returns NO_POLICY_FOR_DATE if a segment date is unmapped", () => {
+    // Policy effective only until 2026-10-13, but absence extends to 2026-10-17
+    const expiringPolicy: PolicyDTO = {
+      ...defaultPolicy,
+      effectiveUntil: "2026-10-13",
+    };
+
+    const res = calculateReimbursement({
+      startDate: "2026-10-10",
+      endDate: "2026-10-17",
+      today: "2026-10-18",
+      policies: [expiringPolicy],
+    });
+
+    expect(res.eligible).toBe(false);
+    expect(res.reason).toBe("NO_POLICY_FOR_DATE");
+    expect(res.claimablePaise).toBe(0);
+  });
+
+  it("handles malformed date inputs gracefully by rejecting invalid format", () => {
+    expect(() =>
+      calculateReimbursement({
+        startDate: "invalid-date",
+        endDate: "2026-10-17",
+        today: "2026-10-18",
+        policies: [defaultPolicy],
+      }),
+    ).toThrow(/Invalid date format/);
+  });
 });

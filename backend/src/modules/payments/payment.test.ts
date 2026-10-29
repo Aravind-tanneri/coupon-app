@@ -251,4 +251,68 @@ describe("Phase 18: Coupon Payment Integration (Razorpay)", () => {
       expect(details).not.toHaveProperty("id");
     });
   });
+
+  describe("verifyClientPayment (§18.3)", () => {
+    it("verifies payment signature against provider", async () => {
+      vi.mocked(prisma.couponOrder.findUnique).mockResolvedValue({
+        id: "ord-1",
+        orderToken: "order_tok_abc",
+        status: "CREATED",
+      } as never);
+
+      const res = await service.verifyClientPayment("order_tok_abc", {
+        razorpayOrderId: "order_rzp_1",
+        razorpayPaymentId: "pay_1",
+        razorpaySignature: "valid_payment_sig",
+      });
+
+      expect(res.verified).toBe(true);
+      expect(res.status).toBe("CREATED");
+    });
+  });
+
+  describe("Reconciliation & Admin Queues (§18.5, §18.7)", () => {
+    it("reconciles pending orders with late payment detection", async () => {
+      vi.mocked(prisma.couponOrder.findMany).mockResolvedValue([
+        {
+          id: "ord-late",
+          razorpayOrderId: "rzp_ord_late",
+          validDate: new Date("2026-10-01"), // Past date
+          amountPaise: 5000,
+          status: "CREATED",
+        },
+      ] as never);
+
+      fakeProvider.fetchOrderStatus = vi.fn().mockResolvedValue({
+        status: "paid",
+        amountPaise: 5000,
+        paymentId: "pay_late_123",
+      });
+
+      const res = await service.reconcilePendingOrders();
+      expect(res.errors).toBe(0);
+      expect(prisma.couponOrder.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: { status: "NEEDS_REVIEW" },
+        }),
+      );
+    });
+
+    it("lists orders and filters by NEEDS_REVIEW status", async () => {
+      vi.mocked(prisma.couponOrder.count).mockResolvedValue(1);
+      vi.mocked(prisma.couponOrder.findMany).mockResolvedValue([
+        {
+          id: "ord-rev",
+          status: "NEEDS_REVIEW",
+          amountPaise: 6500,
+          product: { code: "DINNER" },
+          student: { rollNo: "2024CS01", name: "Bob" },
+        },
+      ] as never);
+
+      const list = await service.listNeedsReview("mess-1");
+      expect(list.total).toBe(1);
+      expect(list.items[0]?.status).toBe("NEEDS_REVIEW");
+    });
+  });
 });

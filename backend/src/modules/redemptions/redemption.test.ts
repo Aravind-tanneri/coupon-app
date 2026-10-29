@@ -281,6 +281,55 @@ describe("RedemptionService", () => {
         }),
       ).rejects.toThrowError(ConflictError);
     });
+
+    it("rejects redemption if current time is outside the meal window", async () => {
+      vi.mocked(prisma.coupon.findFirst).mockResolvedValue({
+        id: "c-outside",
+        messId: "mess-1",
+        status: "ACTIVE",
+        validDate: getTodayIST(),
+        expiresAt: new Date(Date.now() + 3600000),
+        mealType: "BREAKFAST", // e.g. at dinner time
+      } as unknown as import("@prisma/client").Coupon);
+
+      // Force setting to meal window that doesn't match now
+      vi.mocked(prisma.setting.findUnique).mockResolvedValue({
+        key: "meal_windows_mess-1",
+        value: {
+          BREAKFAST: { start: "00:00", end: "00:01" }, // strictly closed
+        },
+      } as never);
+
+      await expect(
+        service.redeemCoupon({
+          shortCode: "7K9X2MW4",
+          messId: "mess-1",
+          staffId: "staff-1",
+          skipMealWindowCheck: false,
+        }),
+      ).rejects.toMatchObject({ code: "OUTSIDE_MEAL_WINDOW" });
+    });
+
+    it("throws WRONG_DATE if coupon is for a different date when update fails", async () => {
+      vi.mocked(prisma.coupon.findFirst).mockResolvedValue({
+        id: "c-diff-date",
+        messId: "mess-1",
+        status: "ACTIVE",
+        validDate: new Date("2026-10-01T00:00:00.000Z"), // Different date
+        expiresAt: new Date(Date.now() + 3600000),
+        mealType: "LUNCH",
+      } as unknown as import("@prisma/client").Coupon);
+      vi.mocked(prisma.coupon.updateMany).mockResolvedValue({ count: 0 });
+
+      await expect(
+        service.redeemCoupon({
+          shortCode: "7K9X2MW4",
+          messId: "mess-1",
+          staffId: "staff-1",
+          skipMealWindowCheck: true,
+        }),
+      ).rejects.toMatchObject({ code: "WRONG_DATE" });
+    });
   });
 
   describe("getRedemptionSummary", () => {
@@ -307,6 +356,101 @@ describe("RedemptionService", () => {
       expect(summary.byMeal.DINNER).toBe(12);
       expect(summary.byMeal.BREAKFAST).toBe(0);
       expect(summary.recentFeed).toHaveLength(1);
+    });
+  });
+
+  describe("listRedemptions", () => {
+    it("returns paginated redemption list with filtering and search", async () => {
+      vi.mocked(prisma.coupon.count).mockResolvedValue(1);
+      vi.mocked(prisma.coupon.findMany).mockResolvedValue([
+        {
+          id: "c-100",
+          shortCode: "ABCDEFGH",
+          status: "REDEEMED",
+          student: { id: "s1", rollNo: "2024CS01", name: "Alice", department: "CSE" },
+          product: { id: "p1", code: "LUNCH", mealType: "LUNCH" },
+          mess: { id: "mess-1", code: "AKSHAYA", name: "Akshaya Mess" },
+          redemption: { id: "r1", staffId: "staff-1", at: new Date() },
+        },
+      ] as unknown as import("@prisma/client").Coupon[]);
+
+      const result = await service.listRedemptions({
+        messId: "mess-1",
+        mealType: "LUNCH",
+        date: "2026-10-29",
+        search: "Alice",
+        page: 1,
+        pageSize: 20,
+      });
+
+      expect(result.total).toBe(1);
+      expect(result.items).toHaveLength(1);
+      expect(result.items[0]?.student.name).toBe("Alice");
+    });
+  });
+
+  describe("atomic failure classification on concurrent conflict", () => {
+    it("throws WRONG_MESS if coupon belongs to another mess when update fails", async () => {
+      vi.mocked(prisma.coupon.findFirst).mockResolvedValue({
+        id: "coupon-diff-mess",
+        messId: "mess-other",
+        status: "ACTIVE",
+        validDate: getTodayIST(),
+        expiresAt: new Date(Date.now() + 3600000),
+        mealType: "LUNCH",
+      } as unknown as import("@prisma/client").Coupon);
+      vi.mocked(prisma.coupon.updateMany).mockResolvedValue({ count: 0 });
+
+      await expect(
+        service.redeemCoupon({
+          shortCode: "7K9X2MW4",
+          messId: "mess-1",
+          staffId: "staff-1",
+          skipMealWindowCheck: true,
+        }),
+      ).rejects.toMatchObject({ code: "WRONG_MESS" });
+    });
+
+    it("throws REVOKED if coupon is revoked when update fails", async () => {
+      vi.mocked(prisma.coupon.findFirst).mockResolvedValue({
+        id: "coupon-revoked",
+        messId: "mess-1",
+        status: "REVOKED",
+        validDate: getTodayIST(),
+        expiresAt: new Date(Date.now() + 3600000),
+        mealType: "LUNCH",
+      } as unknown as import("@prisma/client").Coupon);
+      vi.mocked(prisma.coupon.updateMany).mockResolvedValue({ count: 0 });
+
+      await expect(
+        service.redeemCoupon({
+          shortCode: "7K9X2MW4",
+          messId: "mess-1",
+          staffId: "staff-1",
+          skipMealWindowCheck: true,
+        }),
+      ).rejects.toMatchObject({ code: "REVOKED" });
+    });
+
+    it("throws EXPIRED if coupon has passed expiry when update fails", async () => {
+      vi.mocked(prisma.coupon.findFirst).mockResolvedValue({
+        id: "coupon-expired",
+        messId: "mess-1",
+        status: "ACTIVE",
+        validDate: getTodayIST(),
+        expiresAt: new Date(Date.now() - 3600000), // past
+        mealType: "LUNCH",
+      } as unknown as import("@prisma/client").Coupon);
+      vi.mocked(prisma.coupon.updateMany).mockResolvedValue({ count: 0 });
+
+      await expect(
+        service.redeemCoupon({
+          shortCode: "7K9X2MW4",
+          messId: "mess-1",
+          staffId: "staff-1",
+          skipMealWindowCheck: true,
+        }),
+      ).rejects.toMatchObject({ code: "EXPIRED" });
     });
   });
 });

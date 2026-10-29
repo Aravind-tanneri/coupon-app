@@ -26,6 +26,12 @@ export default [
     },
   },
   {
+    files: ["src/**/*.test.ts"],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off",
+    },
+  },
+  {
     ignores: ["dist/**", "node_modules/**", "coverage/**"],
   },
 ];
