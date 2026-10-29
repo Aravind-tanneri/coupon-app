@@ -5,6 +5,7 @@ import { whatsAppService } from "./whatsapp.service.js";
 import { menuFormatter } from "./workflows/menu.formatter.js";
 import { couponWorkflow } from "./workflows/coupon.workflow.js";
 import { reimbursementWorkflow } from "./workflows/reimbursement.workflow.js";
+import { feedbackWorkflow } from "./workflows/feedback.workflow.js";
 import { aiService } from "../ai/ai.service.js";
 import { getTodayISTString, parseDateIST, addDaysIST, formatDateIST } from "../../lib/dates-ist.js";
 import { InjectedStudentContext } from "../ai/gemini.types.js";
@@ -116,6 +117,19 @@ export class WhatsAppRouter {
       await this.sendClaims(context, phone);
       return;
     }
+    if (upperText === "FEEDBACK" || upperText === "COMPLAINT" || upperText === "SUGGESTION") {
+      await this.startFeedback(identity.id, context, phone);
+      return;
+    }
+    if (
+      upperText === "ANNOUNCEMENT" ||
+      upperText === "ANNOUNCEMENTS" ||
+      upperText === "NOTICES" ||
+      upperText === "NEWS"
+    ) {
+      await this.sendAnnouncements(context, phone);
+      return;
+    }
     if (upperText === "HELP" || upperText === "COMMANDS") {
       await this.sendHelpMessage(phone);
       return;
@@ -136,6 +150,30 @@ export class WhatsAppRouter {
         "Routing free-text to active reimbursement workflow step",
       );
       const reply = await reimbursementWorkflow.handleInbound(identity.id, student.id, {
+        text: rawText,
+      });
+      if (reply.buttons && reply.buttons.length > 0) {
+        await whatsAppService.getProvider().sendButtons(phone, reply.text, reply.buttons);
+      } else {
+        await whatsAppService.getProvider().sendText(phone, reply.text);
+      }
+      return;
+    }
+
+    const activeFbConv = await db.conversation.findFirst({
+      where: {
+        identityId: identity.id,
+        workflow: "FEEDBACK",
+        status: "ACTIVE",
+      },
+    });
+
+    if (activeFbConv && activeFbConv.expiresAt > new Date()) {
+      logger.info(
+        { phone, step: activeFbConv.step },
+        "Routing free-text to active feedback workflow step",
+      );
+      const reply = await feedbackWorkflow.handleInbound(identity.id, student.id, student.messId, {
         text: rawText,
       });
       if (reply.buttons && reply.buttons.length > 0) {
@@ -292,6 +330,31 @@ export class WhatsAppRouter {
       return;
     }
 
+    if (toolName === "submit_feedback_draft" && result && typeof result === "object") {
+      const res = result as {
+        category?: import("@prisma/client").FeedbackCategory;
+        message?: string;
+        rating?: number;
+      };
+      const reply = await feedbackWorkflow.startFeedback(
+        identity.id,
+        student.id,
+        student.messId,
+        res,
+      );
+      if (reply.buttons && reply.buttons.length > 0) {
+        await whatsAppService.getProvider().sendButtons(phone, reply.text, reply.buttons);
+      } else {
+        await whatsAppService.getProvider().sendText(phone, reply.text);
+      }
+      return;
+    }
+
+    if (toolName === "get_announcements") {
+      await this.sendAnnouncements(context, phone);
+      return;
+    }
+
     // Generic text reply for other tools
     await whatsAppService
       .getProvider()
@@ -316,6 +379,22 @@ export class WhatsAppRouter {
       const reply = await reimbursementWorkflow.handleInbound(identity.id, context.studentId, {
         actionId,
       });
+      if (reply.buttons && reply.buttons.length > 0) {
+        await whatsAppService.getProvider().sendButtons(phone, reply.text, reply.buttons);
+      } else {
+        await whatsAppService.getProvider().sendText(phone, reply.text);
+      }
+      return;
+    }
+
+    // Feedback action prefix check
+    if (action.startsWith("FB_") || action === "FEEDBACK_SUBMIT" || action === "FEEDBACK_CANCEL") {
+      const reply = await feedbackWorkflow.handleInbound(
+        identity.id,
+        context.studentId,
+        context.messId,
+        { actionId },
+      );
       if (reply.buttons && reply.buttons.length > 0) {
         await whatsAppService.getProvider().sendButtons(phone, reply.text, reply.buttons);
       } else {
@@ -373,6 +452,14 @@ export class WhatsAppRouter {
         await this.startReimbursement(identity.id, context, phone);
         break;
 
+      case "FEEDBACK_START":
+        await this.startFeedback(identity.id, context, phone);
+        break;
+
+      case "ANNOUNCEMENTS":
+        await this.sendAnnouncements(context, phone);
+        break;
+
       case "HELP":
         await this.sendHelpMessage(phone);
         break;
@@ -384,6 +471,32 @@ export class WhatsAppRouter {
           { id: "MY_CLAIMS", title: "My Claims" },
         ]);
         break;
+    }
+  }
+
+  private async startFeedback(
+    identityId: string,
+    context: InjectedStudentContext,
+    phone: string,
+  ): Promise<void> {
+    const reply = await feedbackWorkflow.startFeedback(
+      identityId,
+      context.studentId,
+      context.messId,
+    );
+    if (reply.buttons && reply.buttons.length > 0) {
+      await whatsAppService.getProvider().sendButtons(phone, reply.text, reply.buttons);
+    } else {
+      await whatsAppService.getProvider().sendText(phone, reply.text);
+    }
+  }
+
+  private async sendAnnouncements(context: InjectedStudentContext, phone: string): Promise<void> {
+    const reply = await feedbackWorkflow.getAnnouncements(context.messId);
+    if (reply.buttons && reply.buttons.length > 0) {
+      await whatsAppService.getProvider().sendButtons(phone, reply.text, reply.buttons);
+    } else {
+      await whatsAppService.getProvider().sendText(phone, reply.text);
     }
   }
 
