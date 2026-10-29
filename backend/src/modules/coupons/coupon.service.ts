@@ -424,6 +424,71 @@ export class CouponService {
   }
 
   /**
+   * Revokes an active coupon. Cannot revoke if already redeemed.
+   */
+  async revokeCoupon(id: string, actorId: string, messId?: string, ip?: string) {
+    const coupon = await prisma.coupon.findUnique({
+      where: { id },
+      include: {
+        student: { select: { id: true, rollNo: true, name: true } },
+        product: { select: { id: true, code: true, mealType: true } },
+      },
+    });
+
+    if (!coupon) {
+      throw new NotFoundError(`Coupon ${id} not found`);
+    }
+
+    if (messId && coupon.messId !== messId) {
+      throw new BusinessRuleError("WRONG_MESS", "Coupon belongs to a different mess");
+    }
+
+    if (coupon.status === CouponStatus.REDEEMED) {
+      throw new BusinessRuleError(
+        "COUPON_ALREADY_REDEEMED",
+        "Cannot revoke a coupon that has already been redeemed",
+      );
+    }
+
+    if (coupon.status === CouponStatus.REVOKED) {
+      return coupon;
+    }
+
+    if (coupon.status !== CouponStatus.ACTIVE) {
+      throw new BusinessRuleError(
+        "CANNOT_REVOKE",
+        `Cannot revoke coupon in ${coupon.status} status`,
+      );
+    }
+
+    const updated = await prisma.coupon.update({
+      where: { id },
+      data: {
+        status: CouponStatus.REVOKED,
+        revokedAt: new Date(),
+        revokedById: actorId,
+      },
+      include: {
+        student: { select: { id: true, rollNo: true, name: true } },
+        product: { select: { id: true, code: true, mealType: true } },
+      },
+    });
+
+    await auditService.log({
+      actorType: "ADMIN",
+      actorId,
+      action: "COUPON_REVOKED",
+      entityType: "Coupon",
+      entityId: id,
+      before: { status: coupon.status },
+      after: { status: updated.status, revokedAt: updated.revokedAt },
+      ip,
+    });
+
+    return updated;
+  }
+
+  /**
    * Computes sales and inventory summary metrics.
    */
   async getInventorySummary(messId?: string, validDateStr?: string) {

@@ -122,6 +122,28 @@ export class CouponController {
     });
   }
 
+  async revokeCoupon(req: Request, res: Response) {
+    if (!req.adminUser) {
+      throw new UnauthorizedError();
+    }
+
+    const idParam = req.params.id;
+    const id = Array.isArray(idParam) ? idParam[0] : idParam;
+    if (!id) {
+      throw new BadRequestError("Coupon ID is required");
+    }
+
+    const messId =
+      req.adminUser.role === "SUPER_ADMIN" ? undefined : (req.adminUser.messId ?? undefined);
+
+    const result = await couponService.revokeCoupon(id, req.adminUser.id, messId, req.ip);
+
+    res.status(200).json({
+      success: true,
+      data: result,
+    });
+  }
+
   async getSummary(req: Request, res: Response) {
     if (!req.adminUser) {
       throw new UnauthorizedError();

@@ -23,7 +23,10 @@ vi.mock("../../lib/prisma.js", () => {
       },
       coupon: {
         findUnique: vi.fn(),
+        findFirst: vi.fn(),
         create: vi.fn(),
+        update: vi.fn(),
+        updateMany: vi.fn(),
         count: vi.fn(),
         findMany: vi.fn(),
       },
@@ -230,6 +233,66 @@ describe("CouponService", () => {
       expect(result.rawToken).toBeDefined();
       expect(result.rawToken!.length).toBeGreaterThan(10);
       expect(prisma.couponOrder.update).toHaveBeenCalled();
+    });
+  });
+
+  describe("revokeCoupon", () => {
+    it("successfully revokes an active coupon", async () => {
+      vi.mocked(prisma.coupon.findUnique).mockResolvedValue({
+        id: "coupon-1",
+        messId: "mess-1",
+        studentId: "student-1",
+        status: "ACTIVE",
+        student: { id: "student-1", rollNo: "2024CS01", name: "Alice" },
+        product: { id: "p1", code: "LUNCH", mealType: "LUNCH" },
+      } as unknown as import("@prisma/client").Coupon & {
+        student: { id: string; rollNo: string; name: string };
+        product: { id: string; code: string; mealType: import("@prisma/client").MealType };
+      });
+
+      vi.mocked(prisma.coupon.update).mockResolvedValue({
+        id: "coupon-1",
+        status: "REVOKED",
+        revokedAt: new Date(),
+        revokedById: "admin-1",
+      } as unknown as import("@prisma/client").Coupon & {
+        student: { id: string; rollNo: string; name: string };
+        product: { id: string; code: string; mealType: import("@prisma/client").MealType };
+      });
+
+      const res = await service.revokeCoupon("coupon-1", "admin-1", "mess-1");
+      expect(res.status).toBe("REVOKED");
+      expect(prisma.coupon.update).toHaveBeenCalled();
+    });
+
+    it("rejects revoking an already redeemed coupon", async () => {
+      vi.mocked(prisma.coupon.findUnique).mockResolvedValue({
+        id: "coupon-1",
+        messId: "mess-1",
+        status: "REDEEMED",
+      } as unknown as import("@prisma/client").Coupon & {
+        student: { id: string; rollNo: string; name: string };
+        product: { id: string; code: string; mealType: import("@prisma/client").MealType };
+      });
+
+      await expect(service.revokeCoupon("coupon-1", "admin-1", "mess-1")).rejects.toThrowError(
+        /already been redeemed/,
+      );
+    });
+
+    it("rejects revoking a coupon from a different mess", async () => {
+      vi.mocked(prisma.coupon.findUnique).mockResolvedValue({
+        id: "coupon-1",
+        messId: "mess-other",
+        status: "ACTIVE",
+      } as unknown as import("@prisma/client").Coupon & {
+        student: { id: string; rollNo: string; name: string };
+        product: { id: string; code: string; mealType: import("@prisma/client").MealType };
+      });
+
+      await expect(service.revokeCoupon("coupon-1", "admin-1", "mess-1")).rejects.toThrowError(
+        /different mess/,
+      );
     });
   });
 });

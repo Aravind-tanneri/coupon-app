@@ -8,6 +8,9 @@ import {
   calculateCountedDays,
   getTodayISTString,
   getTodayIST,
+  isTimeInWindow,
+  isMealInWindow,
+  getCurrentISTTime,
 } from "./dates-ist.js";
 
 describe("Dates IST Library (Asia/Kolkata Calendar)", () => {
@@ -78,5 +81,23 @@ describe("Dates IST Library (Asia/Kolkata Calendar)", () => {
     expect(todayStr).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     const todayDate = getTodayIST();
     expect(todayDate).toBeInstanceOf(Date);
+  });
+
+  it("checks meal windows accurately in IST", () => {
+    const istTime = getCurrentISTTime();
+    expect(istTime.timeStr).toMatch(/^\d{2}:\d{2}$/);
+    expect(istTime.hours).toBeGreaterThanOrEqual(0);
+    expect(istTime.hours).toBeLessThanOrEqual(23);
+
+    // Standard window checks
+    expect(isTimeInWindow("13:00", "12:00", "15:00")).toBe(true);
+    expect(isTimeInWindow("11:59", "12:00", "15:00")).toBe(false);
+    expect(isTimeInWindow("15:01", "12:00", "15:00")).toBe(false);
+
+    // Meal specific checks with explicit time
+    expect(isMealInWindow("LUNCH", undefined, "12:30")).toBe(true);
+    expect(isMealInWindow("LUNCH", undefined, "16:00")).toBe(false);
+    expect(isMealInWindow("DINNER", undefined, "20:00")).toBe(true);
+    expect(isMealInWindow("DINNER", undefined, "08:00")).toBe(false);
   });
 });

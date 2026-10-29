@@ -7,6 +7,7 @@ import { StatusBadge } from "../components/common/StatusBadge";
 import { CurrencyDisplay } from "../components/common/CurrencyDisplay";
 import { ISTDateDisplay } from "../components/common/ISTDateDisplay";
 import { Modal } from "../components/common/Modal";
+import { ConfirmDialog } from "../components/common/ConfirmDialog";
 import {
   Ticket,
   Plus,
@@ -18,6 +19,7 @@ import {
   IndianRupee,
   Layers,
   Edit2,
+  Ban,
 } from "lucide-react";
 
 type MealType = "BREAKFAST" | "LUNCH" | "SNACKS" | "DINNER" | "SPECIAL_DINNER";
@@ -111,6 +113,10 @@ export const CouponsPage: React.FC = () => {
     mealType: string;
     validDate: string;
   } | null>(null);
+
+  // Revoke Coupon State
+  const [revokeCouponTarget, setRevokeCouponTarget] = useState<CouponItem | null>(null);
+  const [isRevoking, setIsRevoking] = useState<boolean>(false);
 
   // Fetch Inventory Summary
   const fetchSummary = useCallback(async () => {
@@ -292,6 +298,27 @@ export const CouponsPage: React.FC = () => {
     }
   };
 
+  // Revoke Coupon Handler
+  const handleRevokeCoupon = async () => {
+    if (!revokeCouponTarget) return;
+    setIsRevoking(true);
+    try {
+      await api.post(`/coupons/${revokeCouponTarget.id}/revoke`);
+      toast.success("Coupon Revoked", `Coupon ${revokeCouponTarget.shortCode} has been revoked.`);
+      setRevokeCouponTarget(null);
+      fetchCoupons();
+      fetchSummary();
+    } catch (err) {
+      if (err instanceof ApiClientError) {
+        toast.error("Revocation Failed", err.message);
+      } else {
+        toast.error("Error", "An unexpected error occurred while revoking the coupon.");
+      }
+    } finally {
+      setIsRevoking(false);
+    }
+  };
+
   const couponColumns: Column<CouponItem>[] = [
     {
       key: "shortCode",
@@ -346,6 +373,25 @@ export const CouponsPage: React.FC = () => {
       render: (c) => (
         <ISTDateDisplay date={c.createdAt} format="short" className="text-xs text-slate-400" />
       ),
+    },
+    {
+      key: "actions",
+      header: "Actions",
+      render: (c) => {
+        if (c.status === "ACTIVE") {
+          return (
+            <button
+              onClick={() => setRevokeCouponTarget(c)}
+              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-md transition-colors"
+              title="Revoke active coupon"
+            >
+              <Ban className="w-3.5 h-3.5" />
+              Revoke
+            </button>
+          );
+        }
+        return <span className="text-xs text-slate-400">—</span>;
+      },
     },
   ];
 
@@ -848,6 +894,18 @@ export const CouponsPage: React.FC = () => {
           )}
         </Modal>
       )}
+
+      {/* Revoke Coupon Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={Boolean(revokeCouponTarget)}
+        onClose={() => setRevokeCouponTarget(null)}
+        onConfirm={handleRevokeCoupon}
+        title="Revoke Coupon"
+        message={`Are you sure you want to revoke coupon ${revokeCouponTarget?.shortCode} for student ${revokeCouponTarget?.student.name} (${revokeCouponTarget?.student.rollNo})? Once revoked, this coupon cannot be redeemed.`}
+        confirmLabel="Revoke Coupon"
+        isDanger={true}
+        loading={isRevoking}
+      />
     </div>
   );
 };

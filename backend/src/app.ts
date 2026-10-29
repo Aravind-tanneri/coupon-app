@@ -14,6 +14,7 @@ import { studentRouter } from "./modules/students/student.routes.js";
 import { menuRouter } from "./modules/menus/menu.routes.js";
 import { feedbackRouter } from "./modules/feedback/feedback.routes.js";
 import { couponRouter } from "./modules/coupons/coupon.routes.js";
+import { redemptionRouter } from "./modules/redemptions/redemption.routes.js";
 import { NotFoundError } from "./lib/errors.js";
 
 export interface CreateAppOptions {
@@ -97,6 +98,7 @@ export function createApp(options: CreateAppOptions = {}): Express {
   app.use("/api/v1/menus", menuRouter);
   app.use("/api/v1/feedback", feedbackRouter);
   app.use("/api/v1/coupons", couponRouter);
+  app.use("/api/v1/redemptions", redemptionRouter);
 
   // Custom / module route registration hook (for testing and extensions)
   if (options.setupRoutes) {

@@ -45,6 +45,15 @@ couponRouter.get("/", requireAuth, requirePermission("coupon:view"), (req, res, 
   couponController.listCoupons(req, res).catch(next);
 });
 
+couponRouter.post(
+  "/:id/revoke",
+  requireAuth,
+  requirePermission("coupon:revoke"),
+  (req, res, next) => {
+    couponController.revokeCoupon(req, res).catch(next);
+  },
+);
+
 couponRouter.get("/summary", requireAuth, requirePermission("coupon:view"), (req, res, next) => {
   couponController.getSummary(req, res).catch(next);
 });

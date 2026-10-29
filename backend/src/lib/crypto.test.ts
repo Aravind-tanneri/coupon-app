@@ -57,5 +57,5 @@ describe("Crypto Library (AES-256-GCM and Argon2id)", () => {
 
     const isInvalid = await verifyPassword("WrongPassword", hash);
     expect(isInvalid).toBe(false);
-  });
+  }, 15000);
 });

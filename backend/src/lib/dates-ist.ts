@@ -107,3 +107,58 @@ export function calculateCountedDays(startDate: Date | string, endDate: Date | s
   const counted = diff - 1;
   return counted > 0 ? counted : 0;
 }
+
+export interface MealWindow {
+  start: string; // "HH:mm" in 24-hr IST
+  end: string; // "HH:mm" in 24-hr IST
+}
+
+export const DEFAULT_MEAL_WINDOWS: Record<string, MealWindow> = {
+  BREAKFAST: { start: "07:00", end: "10:30" },
+  LUNCH: { start: "12:00", end: "15:00" },
+  SNACKS: { start: "16:30", end: "18:30" },
+  DINNER: { start: "19:30", end: "22:30" },
+  SPECIAL_DINNER: { start: "19:30", end: "23:00" },
+};
+
+/**
+ * Returns current time in IST as HH:mm and broken down into hours and minutes.
+ */
+export function getCurrentISTTime(): { timeStr: string; hours: number; minutes: number } {
+  const formatter = new Intl.DateTimeFormat("en-GB", {
+    timeZone: IST_TIMEZONE,
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+  const timeStr = formatter.format(new Date());
+  const [hours = 0, minutes = 0] = timeStr.split(":").map(Number);
+  return { timeStr, hours, minutes };
+}
+
+/**
+ * Validates if a HH:mm time string is within [start, end].
+ */
+export function isTimeInWindow(currentTime: string, start: string, end: string): boolean {
+  if (start <= end) {
+    return currentTime >= start && currentTime <= end;
+  }
+  // Spanning midnight
+  return currentTime >= start || currentTime <= end;
+}
+
+/**
+ * Determines whether the current IST time is within the active meal window for a given meal.
+ */
+export function isMealInWindow(
+  mealType: string,
+  customWindows?: Record<string, MealWindow>,
+  currentTimeStr?: string,
+): boolean {
+  const windows = { ...DEFAULT_MEAL_WINDOWS, ...customWindows };
+  const window = windows[mealType];
+  if (!window) return true; // Unconstrained if unknown meal type
+
+  const current = currentTimeStr ?? getCurrentISTTime().timeStr;
+  return isTimeInWindow(current, window.start, window.end);
+}
