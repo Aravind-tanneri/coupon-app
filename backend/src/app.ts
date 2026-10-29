@@ -20,6 +20,7 @@ import {
   reimbursementRouter,
   policyRouter,
 } from "./modules/reimbursements/reimbursement.routes.js";
+import { giftRouter } from "./modules/gifts/gift.routes.js";
 import { whatsAppRouter } from "./modules/whatsapp/whatsapp.routes.js";
 import { NotFoundError } from "./lib/errors.js";
 
@@ -113,6 +114,7 @@ export function createApp(options: CreateAppOptions = {}): Express {
   app.use("/api/v1/redemptions", redemptionRouter);
   app.use("/api/v1/reimbursements", reimbursementRouter);
   app.use("/api/v1/reimbursement-policy", policyRouter);
+  app.use("/api/v1/gifts", giftRouter);
   app.use("/api/v1/whatsapp", whatsAppRouter);
 
   // Catch-all for undefined routes
