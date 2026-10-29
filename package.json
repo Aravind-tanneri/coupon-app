@@ -19,6 +19,7 @@
     "prisma:generate": "prisma generate --schema=prisma/schema.prisma",
     "prisma:migrate": "prisma migrate dev --schema=prisma/schema.prisma",
     "prisma:seed": "tsx prisma/seed.ts",
+    "smoke-test": "tsx scripts/smoke-test.ts",
     "prepare": "node -e \"if (!process.env.CI) { try { require('child_process').execSync('npx husky', { stdio: 'inherit' }); } catch(e) {} }\""
   },
   "lint-staged": {

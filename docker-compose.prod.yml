@@ -1,0 +1,119 @@
+services:
+  # ---------------------------------------------------------------------------
+  # 1. Managed PostgreSQL Database
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: campus-mess-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-campus_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ChangeMeSecurely123!}
+      POSTGRES_DB: ${POSTGRES_DB:-campus_mess}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-campus_admin} -d ${POSTGRES_DB:-campus_mess}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - campus-network
+
+  # ---------------------------------------------------------------------------
+  # 2. Campus Mess API Service
+  # ---------------------------------------------------------------------------
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: campus-mess-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-campus_admin}:${POSTGRES_PASSWORD:-ChangeMeSecurely123!}@postgres:5432/${POSTGRES_DB:-campus_mess}?schema=public
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
+      DEFAULT_MESS_CODE: ${DEFAULT_MESS_CODE:-AKSHAYA}
+      SESSION_SECRET: ${SESSION_SECRET:-changeme_min_32_characters_secret_session}
+      PAYOUT_ENCRYPTION_KEY: ${PAYOUT_ENCRYPTION_KEY}
+      SUPER_ADMIN_PASSWORD: ${SUPER_ADMIN_PASSWORD}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      WHATSAPP_PHONE_NUMBER_ID: ${WHATSAPP_PHONE_NUMBER_ID}
+      WHATSAPP_ACCESS_TOKEN: ${WHATSAPP_ACCESS_TOKEN}
+      WHATSAPP_WEBHOOK_VERIFY_TOKEN: ${WHATSAPP_WEBHOOK_VERIFY_TOKEN}
+      WHATSAPP_APP_SECRET: ${WHATSAPP_APP_SECRET}
+      RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID}
+      RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET}
+      RAZORPAY_WEBHOOK_SECRET: ${RAZORPAY_WEBHOOK_SECRET}
+      RESEND_API_KEY: ${RESEND_API_KEY}
+      EMAIL_FROM: ${EMAIL_FROM:-mess@campus.edu}
+    command: >
+      sh -c "npx prisma migrate deploy --schema=prisma/schema.prisma &&
+             node backend/dist/server.js"
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    networks:
+      - campus-network
+
+  # ---------------------------------------------------------------------------
+  # 3. Background Outbox & Notification Worker
+  # ---------------------------------------------------------------------------
+  worker:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: campus-mess-worker
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-campus_admin}:${POSTGRES_PASSWORD:-ChangeMeSecurely123!}@postgres:5432/${POSTGRES_DB:-campus_mess}?schema=public
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
+      DEFAULT_MESS_CODE: ${DEFAULT_MESS_CODE:-AKSHAYA}
+      PAYOUT_ENCRYPTION_KEY: ${PAYOUT_ENCRYPTION_KEY}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      WHATSAPP_PHONE_NUMBER_ID: ${WHATSAPP_PHONE_NUMBER_ID}
+      WHATSAPP_ACCESS_TOKEN: ${WHATSAPP_ACCESS_TOKEN}
+      WHATSAPP_APP_SECRET: ${WHATSAPP_APP_SECRET}
+      RESEND_API_KEY: ${RESEND_API_KEY}
+      EMAIL_FROM: ${EMAIL_FROM:-mess@campus.edu}
+    command: ["node", "backend/dist/worker.js"]
+    networks:
+      - campus-network
+
+  # ---------------------------------------------------------------------------
+  # 4. Frontend & Reverse Proxy (Nginx)
+  # ---------------------------------------------------------------------------
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: campus-mess-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - campus-network
+
+volumes:
+  pgdata:
+    driver: local
+
+networks:
+  campus-network:
+    driver: bridge

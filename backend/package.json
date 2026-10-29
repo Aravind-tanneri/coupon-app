@@ -12,6 +12,7 @@
     "test:coverage": "vitest run --coverage",
     "dev": "tsx watch src/server.ts",
     "start": "node dist/server.js",
+    "start:worker": "node dist/worker.js",
     "prisma:generate": "prisma generate --schema=../prisma/schema.prisma"
   },
   "dependencies": {
