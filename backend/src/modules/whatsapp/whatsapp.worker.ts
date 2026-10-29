@@ -2,6 +2,7 @@ import { prisma } from "../../lib/prisma.js";
 import { logger } from "../../config/logger.js";
 import { jobQueue } from "../../lib/queue.js";
 import { onboardingService } from "../students/onboarding.service.js";
+import { whatsAppRouter } from "./router.js";
 
 export interface WhatsAppInboundJobData {
   message: {
@@ -77,8 +78,8 @@ export class WhatsAppWorker {
           return;
         }
 
-        // Dispatch to linked conversation handler / router
-        await this.handleLinkedMessage(identity, message, tx);
+        // Dispatch to linked conversation handler / router (§14)
+        await whatsAppRouter.routeMessage(identity, message, tx);
       });
     } catch (err) {
       logger.error(
@@ -87,18 +88,6 @@ export class WhatsAppWorker {
       );
       throw err;
     }
-  }
-
-  private async handleLinkedMessage(
-    identity: { id: string; studentId: string; student: { name: string } },
-    message: WhatsAppInboundJobData["message"],
-    _tx: unknown,
-  ): Promise<void> {
-    logger.info(
-      { identityId: identity.id, student: identity.student.name, messageType: message.type },
-      "Linked student message processed",
-    );
-    // In Phases 14-17, conversation router handles specific sub-workflows
   }
 }
 
