@@ -1,10 +1,12 @@
 import { queue } from "./lib/queue.js";
 import { logger } from "./config/logger.js";
+import { whatsAppWorker } from "./modules/whatsapp/whatsapp.worker.js";
 
 async function startWorker(): Promise<void> {
   logger.info("Initializing Campus Mess background worker process...");
 
   await queue.start();
+  await whatsAppWorker.start();
 
   // Register worker job handlers
   await queue.work("notifications:email", async (data: unknown) => {

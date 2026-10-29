@@ -103,3 +103,4 @@ export class JobQueue {
 }
 
 export const queue = new JobQueue();
+export const jobQueue = queue;

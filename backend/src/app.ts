@@ -19,6 +19,7 @@ import {
   reimbursementRouter,
   policyRouter,
 } from "./modules/reimbursements/reimbursement.routes.js";
+import { whatsAppRouter } from "./modules/whatsapp/whatsapp.routes.js";
 import { NotFoundError } from "./lib/errors.js";
 
 export interface CreateAppOptions {
@@ -105,6 +106,7 @@ export function createApp(options: CreateAppOptions = {}): Express {
   app.use("/api/v1/redemptions", redemptionRouter);
   app.use("/api/v1/reimbursements", reimbursementRouter);
   app.use("/api/v1/reimbursement-policy", policyRouter);
+  app.use("/api/v1/whatsapp", whatsAppRouter);
 
   // Custom / module route registration hook (for testing and extensions)
   if (options.setupRoutes) {

@@ -88,3 +88,9 @@ export class InternalServerError extends AppError {
     super(500, "INTERNAL_SERVER_ERROR", message);
   }
 }
+
+export class ExternalServiceError extends AppError {
+  constructor(message = "External service unavailable", details?: unknown) {
+    super(502, "EXTERNAL_SERVICE_ERROR", message, details);
+  }
+}

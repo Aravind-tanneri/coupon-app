@@ -56,6 +56,9 @@ if (rawEnv.NODE_ENV === "test") {
     rawEnv.DATABASE_URL ?? "postgresql://postgres:postgres@localhost:5432/campus_mess_test";
   rawEnv.SESSION_SECRET = rawEnv.SESSION_SECRET ?? "0123456789abcdef0123456789abcdef";
   rawEnv.PAYOUT_ENCRYPTION_KEY = rawEnv.PAYOUT_ENCRYPTION_KEY ?? "0123456789abcdef0123456789abcdef";
+  rawEnv.WHATSAPP_WEBHOOK_VERIFY_TOKEN =
+    rawEnv.WHATSAPP_WEBHOOK_VERIFY_TOKEN ?? "test_webhook_verify_token";
+  rawEnv.WHATSAPP_APP_SECRET = rawEnv.WHATSAPP_APP_SECRET ?? "test_whatsapp_app_secret";
 }
 
 let cachedEnv: Env | null = null;
