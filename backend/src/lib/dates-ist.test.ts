@@ -11,6 +11,7 @@ import {
   isTimeInWindow,
   isMealInWindow,
   getCurrentISTTime,
+  parseUserDateInput,
 } from "./dates-ist.js";
 
 describe("Dates IST Library (Asia/Kolkata Calendar)", () => {
@@ -99,5 +100,25 @@ describe("Dates IST Library (Asia/Kolkata Calendar)", () => {
     expect(isMealInWindow("LUNCH", undefined, "16:00")).toBe(false);
     expect(isMealInWindow("DINNER", undefined, "20:00")).toBe(true);
     expect(isMealInWindow("DINNER", undefined, "08:00")).toBe(false);
+  });
+
+  describe("parseUserDateInput (§16.2)", () => {
+    it("parses deterministic date formats", () => {
+      expect(parseUserDateInput("2026-10-10")).toBe("2026-10-10");
+      expect(parseUserDateInput("10/10/2026")).toBe("2026-10-10");
+      expect(parseUserDateInput("10-10-2026")).toBe("2026-10-10");
+      expect(parseUserDateInput("10/10", 2026)).toBe("2026-10-10");
+      expect(parseUserDateInput("10-10", 2026)).toBe("2026-10-10");
+      expect(parseUserDateInput("10 Oct", 2026)).toBe("2026-10-10");
+      expect(parseUserDateInput("10 October 2026")).toBe("2026-10-10");
+      expect(parseUserDateInput("17 Oct 2026")).toBe("2026-10-17");
+      expect(parseUserDateInput("Oct 10 2026")).toBe("2026-10-10");
+    });
+
+    it("rejects invalid dates and unparseable gibberish", () => {
+      expect(parseUserDateInput("31 Feb 2026")).toBeNull();
+      expect(parseUserDateInput("not a date")).toBeNull();
+      expect(parseUserDateInput("")).toBeNull();
+    });
   });
 });

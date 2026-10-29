@@ -12,6 +12,13 @@ vi.mock("../../../lib/prisma.js", () => {
       menu: {
         findMany: vi.fn(),
       },
+      conversation: {
+        findFirst: vi.fn().mockResolvedValue(null),
+        findMany: vi.fn().mockResolvedValue([]),
+        create: vi.fn(),
+        update: vi.fn(),
+        updateMany: vi.fn(),
+      },
       aiToolCallLog: {
         count: vi.fn().mockResolvedValue(0),
         create: vi.fn().mockResolvedValue({ id: "log-1" }),

@@ -4,6 +4,7 @@ import { logger } from "../../config/logger.js";
 import { whatsAppService } from "./whatsapp.service.js";
 import { menuFormatter } from "./workflows/menu.formatter.js";
 import { couponWorkflow } from "./workflows/coupon.workflow.js";
+import { reimbursementWorkflow } from "./workflows/reimbursement.workflow.js";
 import { aiService } from "../ai/ai.service.js";
 import { getTodayISTString, parseDateIST, addDaysIST, formatDateIST } from "../../lib/dates-ist.js";
 import { InjectedStudentContext } from "../ai/gemini.types.js";
@@ -67,7 +68,7 @@ export class WhatsAppRouter {
         { phone, interactiveId },
         "Routing interactive button/list callback deterministically",
       );
-      await this.handleInteractiveAction(interactiveId, context, phone, db);
+      await this.handleInteractiveAction(interactiveId, identity, context, phone, db);
       return;
     }
 
@@ -102,8 +103,46 @@ export class WhatsAppRouter {
       await this.sendBuyProducts(context, phone, db);
       return;
     }
+    if (
+      upperText === "REIMBURSE" ||
+      upperText === "REIMBURSEMENT" ||
+      upperText === "CLAIM" ||
+      upperText === "REBATE"
+    ) {
+      await this.startReimbursement(identity.id, context, phone);
+      return;
+    }
+    if (upperText === "CLAIMS" || upperText === "MY CLAIMS") {
+      await this.sendClaims(context, phone);
+      return;
+    }
     if (upperText === "HELP" || upperText === "COMMANDS") {
       await this.sendHelpMessage(phone);
+      return;
+    }
+
+    // 2.5 Check if student has an active guided workflow step (§8, §9)
+    const activeConv = await db.conversation.findFirst({
+      where: {
+        identityId: identity.id,
+        workflow: "REIMBURSEMENT",
+        status: "ACTIVE",
+      },
+    });
+
+    if (activeConv && activeConv.expiresAt > new Date()) {
+      logger.info(
+        { phone, step: activeConv.step },
+        "Routing free-text to active reimbursement workflow step",
+      );
+      const reply = await reimbursementWorkflow.handleInbound(identity.id, student.id, {
+        text: rawText,
+      });
+      if (reply.buttons && reply.buttons.length > 0) {
+        await whatsAppService.getProvider().sendButtons(phone, reply.text, reply.buttons);
+      } else {
+        await whatsAppService.getProvider().sendText(phone, reply.text);
+      }
       return;
     }
 
@@ -213,6 +252,46 @@ export class WhatsAppRouter {
       return;
     }
 
+    if (toolName === "start_reimbursement_claim") {
+      const res = result as { startDate?: string };
+      await this.startReimbursement(identity.id, context, phone, res.startDate);
+      return;
+    }
+
+    if (toolName === "get_my_reimbursements" || toolName === "get_my_reimbursement") {
+      await this.sendClaims(context, phone);
+      return;
+    }
+
+    if (toolName === "calculate_reimbursement" && result && typeof result === "object") {
+      const calc = result as {
+        eligible?: boolean;
+        countedDays?: number;
+        rateAtClaimPaise?: number;
+        claimablePaise?: number;
+        message?: string;
+      };
+      if (!calc.eligible) {
+        await whatsAppService
+          .getProvider()
+          .sendText(phone, `⚠️ Calculation Result: Not eligible. ${calc.message || ""}`);
+      } else {
+        const rateRs = ((calc.rateAtClaimPaise ?? 0) / 100).toFixed(0);
+        const claimRs = ((calc.claimablePaise ?? 0) / 100).toFixed(2);
+        const msg = [
+          "💰 *Reimbursement Calculation Estimate*",
+          `Days counted: *${calc.countedDays}*`,
+          `Rate: *₹${rateRs}/day*`,
+          `Estimated rebate: *₹${claimRs}*`,
+          "\n_Reply REIMBURSE to file this claim._",
+        ].join("\n");
+        await whatsAppService
+          .getProvider()
+          .sendButtons(phone, msg, [{ id: "REIMB_START", title: "File Claim" }]);
+      }
+      return;
+    }
+
     // Generic text reply for other tools
     await whatsAppService
       .getProvider()
@@ -224,12 +303,26 @@ export class WhatsAppRouter {
    */
   async handleInteractiveAction(
     actionId: string,
+    identity: StudentIdentityRecord,
     context: InjectedStudentContext,
     phone: string,
     db: Prisma.TransactionClient | typeof prisma,
   ): Promise<void> {
-    const [action, ...rest] = actionId.split(":");
+    const [action = "", ...rest] = actionId.split(":");
     const param = rest.join(":");
+
+    // Reimbursement action prefix check
+    if (action.startsWith("REIMB_") && action !== "REIMB_START") {
+      const reply = await reimbursementWorkflow.handleInbound(identity.id, context.studentId, {
+        actionId,
+      });
+      if (reply.buttons && reply.buttons.length > 0) {
+        await whatsAppService.getProvider().sendButtons(phone, reply.text, reply.buttons);
+      } else {
+        await whatsAppService.getProvider().sendText(phone, reply.text);
+      }
+      return;
+    }
 
     switch (action) {
       case "MENU_MAIN":
@@ -272,6 +365,14 @@ export class WhatsAppRouter {
         }
         break;
 
+      case "MY_CLAIMS":
+        await this.sendClaims(context, phone);
+        break;
+
+      case "REIMB_START":
+        await this.startReimbursement(identity.id, context, phone);
+        break;
+
       case "HELP":
         await this.sendHelpMessage(phone);
         break;
@@ -280,9 +381,36 @@ export class WhatsAppRouter {
         await whatsAppService.getProvider().sendButtons(phone, "Select a service to proceed:", [
           { id: "MENU_TODAY", title: "Today's Menu" },
           { id: "MY_COUPONS", title: "My Coupons" },
-          { id: "HELP", title: "Help & Commands" },
+          { id: "MY_CLAIMS", title: "My Claims" },
         ]);
         break;
+    }
+  }
+
+  private async startReimbursement(
+    identityId: string,
+    context: InjectedStudentContext,
+    phone: string,
+    startDateStr?: string,
+  ): Promise<void> {
+    const reply = await reimbursementWorkflow.startOrResume(
+      identityId,
+      context.studentId,
+      startDateStr,
+    );
+    if (reply.buttons && reply.buttons.length > 0) {
+      await whatsAppService.getProvider().sendButtons(phone, reply.text, reply.buttons);
+    } else {
+      await whatsAppService.getProvider().sendText(phone, reply.text);
+    }
+  }
+
+  private async sendClaims(context: InjectedStudentContext, phone: string): Promise<void> {
+    const reply = await reimbursementWorkflow.listMyClaims(context.studentId);
+    if (reply.buttons && reply.buttons.length > 0) {
+      await whatsAppService.getProvider().sendButtons(phone, reply.text, reply.buttons);
+    } else {
+      await whatsAppService.getProvider().sendText(phone, reply.text);
     }
   }
 
