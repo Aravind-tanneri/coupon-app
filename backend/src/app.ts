@@ -14,6 +14,7 @@ import { studentRouter } from "./modules/students/student.routes.js";
 import { menuRouter } from "./modules/menus/menu.routes.js";
 import { feedbackRouter } from "./modules/feedback/feedback.routes.js";
 import { couponRouter } from "./modules/coupons/coupon.routes.js";
+import { paymentRouter } from "./modules/payments/payment.routes.js";
 import { redemptionRouter } from "./modules/redemptions/redemption.routes.js";
 import {
   reimbursementRouter,
@@ -96,6 +97,11 @@ export function createApp(options: CreateAppOptions = {}): Express {
     });
   });
 
+  // Custom / module route registration hook (for testing and extensions)
+  if (options.setupRoutes) {
+    options.setupRoutes(app);
+  }
+
   // API v1 Routes
   app.use("/api/v1/auth", authRouter);
   app.use("/api/v1/users", userRouter);
@@ -103,15 +109,11 @@ export function createApp(options: CreateAppOptions = {}): Express {
   app.use("/api/v1/menus", menuRouter);
   app.use("/api/v1/feedback", feedbackRouter);
   app.use("/api/v1/coupons", couponRouter);
+  app.use("/api/v1/payments", paymentRouter);
   app.use("/api/v1/redemptions", redemptionRouter);
   app.use("/api/v1/reimbursements", reimbursementRouter);
   app.use("/api/v1/reimbursement-policy", policyRouter);
   app.use("/api/v1/whatsapp", whatsAppRouter);
-
-  // Custom / module route registration hook (for testing and extensions)
-  if (options.setupRoutes) {
-    options.setupRoutes(app);
-  }
 
   // Catch-all for undefined routes
   app.use((req: Request, _res: Response, next: NextFunction) => {

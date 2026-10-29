@@ -6,6 +6,7 @@ import { DashboardLayout } from "./components/layout/DashboardLayout";
 
 import { LoginPage } from "./pages/LoginPage";
 import { StudentPurchasePage } from "./pages/StudentPurchasePage";
+import { CheckoutPage } from "./pages/CheckoutPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { MenusPage } from "./pages/MenusPage";
 import { CouponsPage } from "./pages/CouponsPage";
@@ -24,6 +25,7 @@ export const AppRoutes: React.FC = () => {
       {/* Public Routes */}
       <Route path="/login" element={<LoginPage />} />
       <Route path="/buy" element={<StudentPurchasePage />} />
+      <Route path="/pay/:orderToken" element={<CheckoutPage />} />
 
       {/* Protected Routes inside App Shell Layout */}
       <Route
