@@ -277,7 +277,12 @@ export class WhatsAppRouter {
       return;
     }
 
-    if (toolName === "get_my_coupons" || toolName === "get_my_gift_coupons") {
+    if (toolName === "get_my_gift_coupons") {
+      await this.sendGiftCoupons(context, phone);
+      return;
+    }
+
+    if (toolName === "get_my_coupons") {
       await this.sendCoupons(context, phone);
       return;
     }
@@ -559,6 +564,17 @@ export class WhatsAppRouter {
       await whatsAppService
         .getProvider()
         .sendButtons(phone, formatted.text, formatted.buttons, { header: "Meal Passes" });
+    } else {
+      await whatsAppService.getProvider().sendText(phone, formatted.text);
+    }
+  }
+
+  private async sendGiftCoupons(context: InjectedStudentContext, phone: string): Promise<void> {
+    const formatted = await couponWorkflow.listMyGiftCoupons(context.studentId);
+    if (formatted.buttons && formatted.buttons.length > 0) {
+      await whatsAppService
+        .getProvider()
+        .sendButtons(phone, formatted.text, formatted.buttons, { header: "Special Feast" });
     } else {
       await whatsAppService.getProvider().sendText(phone, formatted.text);
     }

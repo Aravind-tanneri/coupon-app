@@ -89,6 +89,51 @@ export class CouponWorkflow {
   }
 
   /**
+   * Shows student's complimentary special dinner gift passes (§22.2).
+   */
+  async listMyGiftCoupons(studentId: string): Promise<FormattedCouponsResult> {
+    const giftCoupons = await prisma.coupon.findMany({
+      where: {
+        studentId,
+        source: "ADMIN_GIFT",
+        status: { in: ["ACTIVE", "REDEEMED"] },
+      },
+      orderBy: { validDate: "desc" },
+      take: 10,
+    });
+
+    if (giftCoupons.length === 0) {
+      return {
+        text: "🎁 *Special Feast Gift Passes*\n\nYou currently have no special dinner gift coupons assigned to your account.\n\nReply *MENU* to view regular meal schedules.",
+        buttons: [{ id: "SHOW_TODAY_MENU", title: "View Today Menu" }],
+      };
+    }
+
+    const lines: string[] = ["🎁 *My Special Feast Gift Passes:*\n"];
+
+    for (const c of giftCoupons) {
+      const dateStr = formatDateIST(c.validDate);
+      const statusBadge = c.status === "ACTIVE" ? "🟢 Valid" : "⚪ Redeemed";
+      lines.push(
+        `• 🍽️ *Special Dinner* on ${dateStr}\n   Code: \`${c.shortCode}\` | ${statusBadge}`,
+      );
+    }
+
+    const activeGifts = giftCoupons.filter((c) => c.status === "ACTIVE");
+    const buttons = activeGifts.slice(0, 3).map((c) => ({
+      id: `SHOW_QR:${c.shortCode}`,
+      title: `Pass ${c.shortCode}`,
+    }));
+
+    lines.push("\n_Tap below or present the counter code at the dining entrance on feast night._");
+
+    return {
+      text: lines.join("\n").trim(),
+      buttons,
+    };
+  }
+
+  /**
    * Generates QR PNG buffer for dining counter redemption (§12, §15.3).
    * STRICT SECURITY CONTROL: QR encodes ONLY the public redemption token URL.
    * NO student name, roll number, or PII is ever embedded in the QR image.

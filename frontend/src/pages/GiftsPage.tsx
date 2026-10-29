@@ -798,6 +798,7 @@ export const GiftsPage: React.FC = () => {
                       <th className="px-4 py-2.5">Coupon Code</th>
                       <th className="px-4 py-2.5">Status</th>
                       <th className="px-4 py-2.5">Redemption Time</th>
+                      <th className="px-4 py-2.5">Alerts Delivery</th>
                       <th className="px-4 py-2.5 text-right">Actions</th>
                     </tr>
                   </thead>
@@ -843,6 +844,26 @@ export const GiftsPage: React.FC = () => {
                               ) : (
                                 <span className="text-slate-400">—</span>
                               )}
+                            </td>
+                            <td className="px-4 py-2.5">
+                              <div className="flex flex-col gap-1 text-[11px]">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-slate-400 font-medium">Email:</span>
+                                  <StatusBadge status={item.emailStatus} />
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-slate-400 font-medium">WA:</span>
+                                  <StatusBadge status={item.whatsappStatus} />
+                                  {item.whatsappStatus === "FAILED" && (
+                                    <span
+                                      className="text-rose-600 font-medium text-[10px]"
+                                      title="WhatsApp delivery failed or phone not linked"
+                                    >
+                                      ⚠️ Failed
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
                             </td>
                             <td className="px-4 py-2.5 text-right">
                               {isActive && item.coupon ? (
