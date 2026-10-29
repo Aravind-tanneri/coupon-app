@@ -15,6 +15,16 @@ export class PolicyService {
     });
   }
 
+  async getPoliciesForMess(messId: string) {
+    return this.listPolicies(messId);
+  }
+
+  async getActivePolicy(messId: string) {
+    const policies = await this.listPolicies(messId);
+    const now = new Date();
+    return policies.find((p) => !p.effectiveUntil || p.effectiveUntil >= now) ?? null;
+  }
+
   /**
    * Creates a new immutable reimbursement policy row.
    * Closes the previous active policy's effectiveUntil to the day before effectiveFrom.

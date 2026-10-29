@@ -15,6 +15,7 @@
     "prisma:generate": "prisma generate --schema=../prisma/schema.prisma"
   },
   "dependencies": {
+    "@google/genai": "^2.32.0",
     "@prisma/client": "^6.4.0",
     "argon2": "^0.45.1",
     "cookie-parser": "^1.4.7",
