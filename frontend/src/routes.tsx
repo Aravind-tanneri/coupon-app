@@ -5,6 +5,7 @@ import { RequirePermission } from "./components/auth/RequirePermission";
 import { DashboardLayout } from "./components/layout/DashboardLayout";
 
 import { LoginPage } from "./pages/LoginPage";
+import { StudentPurchasePage } from "./pages/StudentPurchasePage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { MenusPage } from "./pages/MenusPage";
 import { CouponsPage } from "./pages/CouponsPage";
@@ -20,8 +21,9 @@ import { SettingsPage } from "./pages/SettingsPage";
 export const AppRoutes: React.FC = () => {
   return (
     <Routes>
-      {/* Public Route */}
+      {/* Public Routes */}
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/buy" element={<StudentPurchasePage />} />
 
       {/* Protected Routes inside App Shell Layout */}
       <Route
