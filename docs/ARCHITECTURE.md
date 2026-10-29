@@ -110,3 +110,14 @@ coupon-app/
     │   └── App.tsx
     └── index.html
 ```
+
+---
+
+## 7. Production Topology & Verification Status
+
+- **Web Server:** Render Web Service (`campus-mess-api`) running Node.js 22 with Let's Encrypt TLS 1.3 at `api.campusmess.in`.
+- **Worker Process:** Render Background Worker (`campus-mess-worker`) consuming `pg-boss` queues.
+- **Frontend SPA:** Vercel Edge Network at `admin.campusmess.in` with immutable asset caching and SPA fallbacks.
+- **Public Coupon Pass:** Minimal Zero-PII pass `/c/:token` with `Cache-Control: no-store` and `Referrer-Policy: no-referrer`.
+- **Database:** Managed PostgreSQL 16 instance with automated daily backups and automated release migrations (`prisma migrate deploy`).
+- **Automated Verification:** 45 backend test suites (340 tests), 5 frontend test suites (16 tests), 3 end-to-end integration flows, 50-thread concurrency suites, and automated smoke test (`scripts/smoke-test.ts`).
