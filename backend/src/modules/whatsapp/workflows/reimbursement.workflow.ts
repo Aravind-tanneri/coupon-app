@@ -1,6 +1,8 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "../../../lib/prisma.js";
 import { reimbursementService } from "../../reimbursements/reimbursement.service.js";
+import { storageService } from "../../storage/storage.service.js";
+import { whatsAppService } from "../whatsapp.service.js";
 import { formatDisplayDateIST, parseUserDateInput } from "../../../lib/dates-ist.js";
 import { generateNonce } from "../../../lib/tokens.js";
 import { maskPayout } from "../../../lib/crypto.js";
@@ -8,6 +10,12 @@ import { maskPayout } from "../../../lib/crypto.js";
 export interface WorkflowReply {
   text: string;
   buttons?: Array<{ id: string; title: string }>;
+}
+
+export interface MediaInput {
+  mediaId: string;
+  mimeType?: string;
+  filename?: string;
 }
 
 export interface ReimbursementDraftData {
@@ -18,6 +26,8 @@ export interface ReimbursementDraftData {
   claimablePaise?: number;
   reason?: string;
   payoutDetails?: string;
+  documentRequired?: boolean;
+  documentCount?: number;
   nonce?: string;
   draftClaimId?: string;
 }
@@ -92,7 +102,7 @@ export class ReimbursementWorkflow {
   async handleInbound(
     identityId: string,
     studentId: string,
-    input: { text?: string; actionId?: string },
+    input: { text?: string; actionId?: string; media?: MediaInput },
   ): Promise<WorkflowReply> {
     const now = new Date();
     const action = input.actionId;
@@ -305,10 +315,22 @@ export class ReimbursementWorkflow {
           });
         }
 
-        // Generate single-use server nonce for submission (§16.5)
-        const submitNonce = generateNonce("submit");
-        data.nonce = submitNonce;
-        const nextStep = "AWAITING_CONFIRMATION";
+        // Check if policy requires supporting documents (§19.6, §25)
+        const student = await prisma.student.findUnique({
+          where: { id: studentId },
+          select: { messId: true },
+        });
+
+        const policy = await prisma.reimbursementPolicy.findFirst({
+          where: { messId: student?.messId },
+          orderBy: { effectiveFrom: "desc" },
+        });
+
+        const docRequired = policy?.documentRequired ?? false;
+        data.documentRequired = docRequired;
+        data.documentCount = 0;
+
+        const nextStep = "AWAITING_DOCUMENT";
 
         await prisma.conversation.update({
           where: { id: conversation.id },
@@ -321,6 +343,113 @@ export class ReimbursementWorkflow {
         });
 
         return this.renderStepPrompt(nextStep, data, studentId);
+      }
+
+      case "AWAITING_DOCUMENT": {
+        // 1. Skip / Proceed button
+        if (
+          action === "REIMB_SKIP_DOCS" ||
+          (!data.documentRequired && (upperText === "SKIP" || upperText === "NO"))
+        ) {
+          if (data.documentRequired) {
+            return {
+              text: "⚠️ Supporting documentation is required for this claim per policy. Please send a photo or PDF to proceed.",
+              buttons: [{ id: "REIMB_CANCEL", title: "Cancel" }],
+            };
+          }
+          // Advance to confirmation
+          const submitNonce = generateNonce("submit");
+          data.nonce = submitNonce;
+          const nextStep = "AWAITING_CONFIRMATION";
+
+          await prisma.conversation.update({
+            where: { id: conversation.id },
+            data: {
+              step: nextStep,
+              data: data as unknown as Prisma.InputJsonValue,
+              expiresAt,
+              version: { increment: 1 },
+            },
+          });
+
+          return this.renderStepPrompt(nextStep, data, studentId);
+        }
+
+        if (
+          action === "REIMB_DOCS_DONE" ||
+          (data.documentCount && (upperText === "DONE" || upperText === "CONTINUE"))
+        ) {
+          const submitNonce = generateNonce("submit");
+          data.nonce = submitNonce;
+          const nextStep = "AWAITING_CONFIRMATION";
+
+          await prisma.conversation.update({
+            where: { id: conversation.id },
+            data: {
+              step: nextStep,
+              data: data as unknown as Prisma.InputJsonValue,
+              expiresAt,
+              version: { increment: 1 },
+            },
+          });
+
+          return this.renderStepPrompt(nextStep, data, studentId);
+        }
+
+        // 2. Ingest Media upload (§19.2, §25)
+        if (input.media) {
+          if (!data.draftClaimId) {
+            return {
+              text: "⚠️ No draft claim found to attach file to. Please start over.",
+              buttons: [{ id: "REIMB_START", title: "Start Over" }],
+            };
+          }
+
+          try {
+            const mediaDownload = await whatsAppService
+              .getProvider()
+              .downloadMedia(input.media.mediaId);
+
+            await storageService.attachReimbursementDocument(
+              data.draftClaimId,
+              mediaDownload.data,
+              input.media.mimeType || mediaDownload.mimeType,
+              input.media.filename,
+            );
+
+            data.documentCount = (data.documentCount ?? 0) + 1;
+
+            await prisma.conversation.update({
+              where: { id: conversation.id },
+              data: {
+                data: data as unknown as Prisma.InputJsonValue,
+                expiresAt,
+                version: { increment: 1 },
+              },
+            });
+
+            return {
+              text: `📄 *Document #${data.documentCount} Uploaded Successfully!*\n\nFile verified and encrypted. You can upload another document (up to 3 total) or tap Continue.`,
+              buttons: [
+                { id: "REIMB_DOCS_DONE", title: "Continue" },
+                { id: "REIMB_CANCEL", title: "Cancel" },
+              ],
+            };
+          } catch (err) {
+            const errMsg = err instanceof Error ? err.message : "Failed to process media file";
+            return {
+              text: `⚠️ *Upload Rejected*: ${errMsg}\n\nPlease send a valid JPEG, PNG or PDF document under 5 MB:`,
+              buttons: [
+                ...(data.documentRequired
+                  ? []
+                  : [{ id: "REIMB_SKIP_DOCS", title: "Skip Documents" }]),
+                { id: "REIMB_CANCEL", title: "Cancel" },
+              ],
+            };
+          }
+        }
+
+        return this.renderStepPrompt("AWAITING_DOCUMENT", data, studentId);
       }
 
       case "AWAITING_CONFIRMATION": {
@@ -451,6 +580,29 @@ export class ReimbursementWorkflow {
             "\n_🔒 Details are securely encrypted at rest._",
           ].join("\n"),
           buttons: [{ id: "REIMB_CANCEL", title: "Cancel" }],
+        };
+
+      case "AWAITING_DOCUMENT":
+        if (data.documentRequired) {
+          return {
+            text: [
+              "📄 *Supporting Documentation (Required)*",
+              "\nPer campus policy, supporting documentation (photo or PDF) is required.",
+              "_Please send an image (JPEG/PNG) or PDF of your approved leave slip, medical prescription, or travel tickets (max 5 MB)._",
+            ].join("\n"),
+            buttons: [{ id: "REIMB_CANCEL", title: "Cancel" }],
+          };
+        }
+        return {
+          text: [
+            "📄 *Supporting Documentation (Optional)*",
+            "\nYou can optionally upload a photo (JPEG/PNG) or PDF of your leave slip or travel tickets (max 5 MB).",
+            "\nTap *Skip Documents* to proceed directly without uploading files.",
+          ].join("\n"),
+          buttons: [
+            { id: "REIMB_SKIP_DOCS", title: "Skip Documents" },
+            { id: "REIMB_CANCEL", title: "Cancel" },
+          ],
         };
 
       case "AWAITING_CONFIRMATION": {

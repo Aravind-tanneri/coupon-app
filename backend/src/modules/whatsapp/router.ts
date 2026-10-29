@@ -16,6 +16,8 @@ export interface RoutedMessage {
   timestamp: string;
   type: string;
   text?: { body: string };
+  image?: { id: string; mime_type?: string; sha256?: string };
+  document?: { id: string; filename?: string; mime_type?: string };
   interactive?: {
     type: string;
     button_reply?: { id: string; title: string };
@@ -71,6 +73,30 @@ export class WhatsAppRouter {
       );
       await this.handleInteractiveAction(interactiveId, identity, context, phone, db);
       return;
+    }
+
+    // 1.5 Check for Inbound Media Attachment (§19.2, §25)
+    const mediaItem = message.image || message.document;
+    if (mediaItem) {
+      const activeConv = await db.conversation.findFirst({
+        where: { identityId: identity.id, workflow: "REIMBURSEMENT", status: "ACTIVE" },
+      });
+
+      if (activeConv && activeConv.expiresAt > new Date()) {
+        const reply = await reimbursementWorkflow.handleInbound(identity.id, student.id, {
+          media: {
+            mediaId: mediaItem.id,
+            mimeType: mediaItem.mime_type || (message.image ? "image/jpeg" : "application/pdf"),
+            filename: "filename" in mediaItem ? mediaItem.filename : undefined,
+          },
+        });
+        if (reply.buttons && reply.buttons.length > 0) {
+          await whatsAppService.getProvider().sendButtons(phone, reply.text, reply.buttons);
+        } else {
+          await whatsAppService.getProvider().sendText(phone, reply.text);
+        }
+        return;
+      }
     }
 
     // 2. Free-text message processing

@@ -15,9 +15,29 @@ vi.mock("../../../lib/prisma.js", () => ({
     student: {
       findUnique: vi.fn(),
     },
+    reimbursementPolicy: {
+      findFirst: vi.fn(),
+    },
     reimbursementRequest: {
       findMany: vi.fn(),
     },
+  },
+}));
+
+vi.mock("../../storage/storage.service.js", () => ({
+  storageService: {
+    attachReimbursementDocument: vi.fn(),
+  },
+}));
+
+vi.mock("../whatsapp.service.js", () => ({
+  whatsAppService: {
+    getProvider: vi.fn(() => ({
+      downloadMedia: vi.fn().mockResolvedValue({
+        data: Buffer.from("fake-file"),
+        mimeType: "image/jpeg",
+      }),
+    })),
   },
 }));
 
@@ -273,7 +293,7 @@ describe("Phase 16: WhatsApp Reimbursement Workflow", () => {
       expect(reply.text).toContain("UPI ID");
     });
 
-    it("AWAITING_PAYOUT_DETAILS -> AWAITING_CONFIRMATION: stores payout and issues review screen with server nonce", async () => {
+    it("AWAITING_PAYOUT_DETAILS -> AWAITING_DOCUMENT: stores payout and prompts for supporting documentation", async () => {
       vi.mocked(prisma.conversation.findFirst).mockResolvedValue({
         id: "conv-1",
         identityId: "ident-1",
@@ -297,6 +317,85 @@ describe("Phase 16: WhatsApp Reimbursement Workflow", () => {
 
       vi.mocked(prisma.student.findUnique).mockResolvedValue({
         id: "stud-1",
+        messId: "akshaya",
+      } as never);
+
+      vi.mocked(prisma.reimbursementPolicy.findFirst).mockResolvedValue({
+        id: "pol-1",
+        messId: "akshaya",
+        documentRequired: false,
+      } as never);
+
+      const reply = await reimbursementWorkflow.handleInbound("ident-1", "stud-1", {
+        text: "rahul@okaxis",
+      });
+
+      expect(reply.text).toContain("Supporting Documentation");
+      expect(reply.buttons).toEqual([
+        { id: "REIMB_SKIP_DOCS", title: "Skip Documents" },
+        { id: "REIMB_CANCEL", title: "Cancel" },
+      ]);
+    });
+
+    it("AWAITING_DOCUMENT: ingests uploaded media, attaches document and prompts for more or completion", async () => {
+      vi.mocked(prisma.conversation.findFirst).mockResolvedValue({
+        id: "conv-1",
+        identityId: "ident-1",
+        workflow: "REIMBURSEMENT",
+        step: "AWAITING_DOCUMENT",
+        data: {
+          draftClaimId: "draft-1",
+          documentCount: 0,
+          documentRequired: true,
+        },
+        version: 6,
+        status: "ACTIVE",
+        expiresAt: new Date(Date.now() + 1800000),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      const reply = await reimbursementWorkflow.handleInbound("ident-1", "stud-1", {
+        media: {
+          mediaId: "media-123",
+          mimeType: "image/jpeg",
+          filename: "ticket.jpg",
+        },
+      });
+
+      expect(reply.text).toContain("Document #1 Uploaded Successfully");
+      expect(reply.buttons).toEqual([
+        { id: "REIMB_DOCS_DONE", title: "Continue" },
+        { id: "REIMB_CANCEL", title: "Cancel" },
+      ]);
+    });
+
+    it("AWAITING_DOCUMENT -> AWAITING_CONFIRMATION: advances on skip documents and displays review screen with server nonce", async () => {
+      vi.mocked(prisma.conversation.findFirst).mockResolvedValue({
+        id: "conv-1",
+        identityId: "ident-1",
+        workflow: "REIMBURSEMENT",
+        step: "AWAITING_DOCUMENT",
+        data: {
+          startDate: "2026-10-10",
+          endDate: "2026-10-17",
+          countedDays: 6,
+          rateAtClaimPaise: 13100,
+          claimablePaise: 78600,
+          reason: "IEEE Conference",
+          payoutDetails: "rahul@okaxis",
+          documentRequired: false,
+          draftClaimId: "draft-1",
+        },
+        version: 6,
+        status: "ACTIVE",
+        expiresAt: new Date(Date.now() + 1800000),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      vi.mocked(prisma.student.findUnique).mockResolvedValue({
+        id: "stud-1",
         name: "Rahul Sharma",
         rollNo: "2024CS001",
         department: "CSE",
@@ -309,7 +408,7 @@ describe("Phase 16: WhatsApp Reimbursement Workflow", () => {
       } as never);
 
       const reply = await reimbursementWorkflow.handleInbound("ident-1", "stud-1", {
-        text: "rahul@okaxis",
+        actionId: "REIMB_SKIP_DOCS",
       });
 
       // Assert §3 Review screen
