@@ -175,6 +175,450 @@ async function main(): Promise<void> {
     console.log(`✓ ${sampleStudents.length} sample students seeded for development`);
   }
 
+  // 6. Seed Official Weekly Mess Menu (Akshaya & Kamadhenu Mess)
+  console.log("Seeding official weekly mess menu...");
+
+  interface MenuItemSeed {
+    name: string;
+    isVeg: boolean;
+  }
+
+  interface MealSlotSeed {
+    mealType: MealType;
+    notes: string;
+    items: MenuItemSeed[];
+  }
+
+  // Official Menu transcribed from NIT AP Akshaya & Kamadhenu Mess Document
+  const WEEKLY_MENU_TEMPLATE: Record<number, MealSlotSeed[]> = {
+    // 1: Monday
+    1: [
+      {
+        mealType: MealType.BREAKFAST,
+        notes: "Daily standard: Toasted Bread (5 slices), Butter (20g), Jam (20g), Sprouts (50g), Tea / Coffee / Milk (200ml), Boiled Egg (1 no) / Banana (Big size)",
+        items: [
+          { name: "Idly", isVeg: true },
+          { name: "Vada", isVeg: true },
+          { name: "White Chutney", isVeg: true },
+          { name: "Sambar", isVeg: true },
+          { name: "Toasted Bread (5 slices) with Butter & Jam", isVeg: true },
+          { name: "Sprouts (50g)", isVeg: true },
+          { name: "Tea / Coffee / Milk (200ml)", isVeg: true },
+          { name: "Boiled Egg (1 no)", isVeg: false },
+          { name: "Banana (Big size)", isVeg: true },
+        ],
+      },
+      {
+        mealType: MealType.LUNCH,
+        notes: "Daily base: Rice, Roti, Sambar, Veg Salad (Carrot + Cucumber + Beetroot), Curd (100g), Fryums & Gongura Pickle",
+        items: [
+          { name: "Tomato Rice", isVeg: true },
+          { name: "Raitha", isVeg: true },
+          { name: "Tomato Meal Maker Curry", isVeg: true },
+          { name: "Masoor Dal", isVeg: true },
+          { name: "Motichoor Laddu", isVeg: true },
+          { name: "Steamed Rice & Roti", isVeg: true },
+          { name: "Sambar", isVeg: true },
+          { name: "Veg Salad (Carrot + Cucumber + Beetroot)", isVeg: true },
+          { name: "Fresh Curd (100g)", isVeg: true },
+          { name: "Fryums & Gongura Pickle", isVeg: true },
+        ],
+      },
+      {
+        mealType: MealType.SNACKS,
+        notes: "Evening Snacks & Hot Beverages",
+        items: [
+          { name: "Veg Puff", isVeg: true },
+          { name: "Tea / Coffee / Milk", isVeg: true },
+        ],
+      },
+      {
+        mealType: MealType.DINNER,
+        notes: "Daily base: Rice, Roti, Rasam, Curd (100g) & Pickle",
+        items: [
+          { name: "Bendi with Boondi Curry", isVeg: true },
+          { name: "Totakura Dal (50% ratio)", isVeg: true },
+          { name: "Steamed Rice & Roti", isVeg: true },
+          { name: "Rasam", isVeg: true },
+          { name: "Fresh Curd (100g) & Pickle", isVeg: true },
+          { name: "Banana", isVeg: true },
+        ],
+      },
+    ],
+    // 2: Tuesday
+    2: [
+      {
+        mealType: MealType.BREAKFAST,
+        notes: "Daily standard: Toasted Bread (5 slices), Butter (20g), Jam (20g), Sprouts (50g), Tea / Coffee / Milk (200ml), Boiled Egg (1 no) / Banana (Big size)",
+        items: [
+          { name: "Set Dosa", isVeg: true },
+          { name: "White Chutney", isVeg: true },
+          { name: "Poppula Podi", isVeg: true },
+          { name: "Toasted Bread (5 slices) with Butter & Jam", isVeg: true },
+          { name: "Sprouts (50g)", isVeg: true },
+          { name: "Tea / Coffee / Milk (200ml)", isVeg: true },
+          { name: "Boiled Egg (1 no)", isVeg: false },
+          { name: "Banana (Big size)", isVeg: true },
+        ],
+      },
+      {
+        mealType: MealType.LUNCH,
+        notes: "Daily base: Rice, Roti, Sambar, Veg Salad, Curd (100g), Fryums & Brinjal Tomato Pickle",
+        items: [
+          { name: "Bendi Curry", isVeg: true },
+          { name: "Tomato Dal", isVeg: true },
+          { name: "Gulab Jamun", isVeg: true },
+          { name: "Steamed Rice & Roti", isVeg: true },
+          { name: "Sambar", isVeg: true },
+          { name: "Veg Salad (Carrot + Cucumber + Beetroot)", isVeg: true },
+          { name: "Fresh Curd (100g)", isVeg: true },
+          { name: "Fryums & Brinjal Tomato Pickle", isVeg: true },
+        ],
+      },
+      {
+        mealType: MealType.SNACKS,
+        notes: "Evening Snacks & Hot Beverages",
+        items: [
+          { name: "Onion Pakoda", isVeg: true },
+          { name: "Tea / Coffee / Milk", isVeg: true },
+        ],
+      },
+      {
+        mealType: MealType.DINNER,
+        notes: "Daily base: Rice, Roti, Rasam, Curd (100g) & Pickle",
+        items: [
+          { name: "Gobi + Aloo Paratha", isVeg: true },
+          { name: "Chole Masala Curry", isVeg: true },
+          { name: "Gongura Dal (50% ratio)", isVeg: true },
+          { name: "Steamed Rice & Roti", isVeg: true },
+          { name: "Rasam", isVeg: true },
+          { name: "Fresh Curd (100g) & Pickle", isVeg: true },
+          { name: "Papaya (2 slices)", isVeg: true },
+        ],
+      },
+    ],
+    // 3: Wednesday
+    3: [
+      {
+        mealType: MealType.BREAKFAST,
+        notes: "Daily standard: Toasted Bread (5 slices), Butter (20g), Jam (20g), Sprouts (50g), Tea / Coffee / Milk (200ml), Boiled Egg (1 no) / Banana (Big size)",
+        items: [
+          { name: "Bisibele Bath", isVeg: true },
+          { name: "Sambar", isVeg: true },
+          { name: "Toasted Bread (5 slices) with Butter & Jam", isVeg: true },
+          { name: "Sprouts (50g)", isVeg: true },
+          { name: "Tea / Coffee / Milk (200ml)", isVeg: true },
+          { name: "Boiled Egg (1 no)", isVeg: false },
+          { name: "Banana (Big size)", isVeg: true },
+        ],
+      },
+      {
+        mealType: MealType.LUNCH,
+        notes: "Daily base: Rice, Roti, Sambar, Veg Salad, Curd (100g), Fryums & Gongura Coconut Pickle",
+        items: [
+          { name: "Gobhi + Mutter Curry", isVeg: true },
+          { name: "Moong Dal", isVeg: true },
+          { name: "Madatha Khaja", isVeg: true },
+          { name: "Steamed Rice & Roti", isVeg: true },
+          { name: "Sambar", isVeg: true },
+          { name: "Veg Salad (Carrot + Cucumber + Beetroot)", isVeg: true },
+          { name: "Fresh Curd (100g)", isVeg: true },
+          { name: "Fryums & Gongura Coconut Pickle", isVeg: true },
+        ],
+      },
+      {
+        mealType: MealType.SNACKS,
+        notes: "Evening Snacks & Hot Beverages",
+        items: [
+          { name: "Aloo Samosa (Big size - 1 no) with Mirchi & Sauce", isVeg: true },
+          { name: "Tea / Coffee / Milk", isVeg: true },
+        ],
+      },
+      {
+        mealType: MealType.DINNER,
+        notes: "Special Dinner: Chicken Curry (Non-Veg) / Mutter Paneer Curry (Veg), Ice Cream & Guava",
+        items: [
+          { name: "Veg Pulav & Raitha", isVeg: true },
+          { name: "Mutter Paneer Curry (Veg)", isVeg: true },
+          { name: "Chicken Curry (Non-Veg) with Lemon & Onion slices", isVeg: false },
+          { name: "Sorakaya Dal", isVeg: true },
+          { name: "Steamed Rice & Roti", isVeg: true },
+          { name: "Rasam", isVeg: true },
+          { name: "Fresh Curd (100g) & Pickle", isVeg: true },
+          { name: "Guava (100g)", isVeg: true },
+          { name: "Vanilla Ice Cream (2 scoops)", isVeg: true },
+        ],
+      },
+    ],
+    // 4: Thursday
+    4: [
+      {
+        mealType: MealType.BREAKFAST,
+        notes: "Daily standard: Toasted Bread (5 slices), Butter (20g), Jam (20g), Sprouts (50g), Tea / Coffee / Milk (200ml), Boiled Egg (1 no) / Banana (Big size)",
+        items: [
+          { name: "Wheat Ravva (Red) Upma / Semiya Upma", isVeg: true },
+          { name: "Poha with Black Chana", isVeg: true },
+          { name: "Toasted Bread (5 slices) with Butter & Jam", isVeg: true },
+          { name: "Sprouts (50g)", isVeg: true },
+          { name: "Tea / Coffee / Milk (200ml)", isVeg: true },
+          { name: "Boiled Egg (1 no)", isVeg: false },
+          { name: "Banana (Big size)", isVeg: true },
+        ],
+      },
+      {
+        mealType: MealType.LUNCH,
+        notes: "Daily base: Rice, Roti, Sambar, Veg Salad, Curd (100g), Fryums & Tomato Pickle",
+        items: [
+          { name: "Chole Masala Curry", isVeg: true },
+          { name: "Masoor Dal", isVeg: true },
+          { name: "Semiya Kheer", isVeg: true },
+          { name: "Steamed Rice & Roti", isVeg: true },
+          { name: "Sambar", isVeg: true },
+          { name: "Veg Salad (Carrot + Cucumber + Beetroot)", isVeg: true },
+          { name: "Fresh Curd (100g)", isVeg: true },
+          { name: "Fryums & Tomato Pickle", isVeg: true },
+        ],
+      },
+      {
+        mealType: MealType.SNACKS,
+        notes: "Evening Snacks & Hot Beverages",
+        items: [
+          { name: "Cake (1 pc big) / Cream Bun", isVeg: true },
+          { name: "Tea / Coffee / Milk", isVeg: true },
+        ],
+      },
+      {
+        mealType: MealType.DINNER,
+        notes: "Daily base: Rice, Roti, Rasam, Curd (100g) & Pickle",
+        items: [
+          { name: "Veg Biryani with Raitha", isVeg: true },
+          { name: "White Kidney Beans Curry", isVeg: true },
+          { name: "Dosakaya & Tomato Dal", isVeg: true },
+          { name: "Steamed Rice & Roti", isVeg: true },
+          { name: "Rasam", isVeg: true },
+          { name: "Fresh Curd (100g) & Pickle", isVeg: true },
+          { name: "Banana", isVeg: true },
+        ],
+      },
+    ],
+    // 5: Friday
+    5: [
+      {
+        mealType: MealType.BREAKFAST,
+        notes: "Daily standard: Toasted Bread (5 slices), Butter (20g), Jam (20g), Sprouts (50g), Banana (Big size - no egg on Friday), Tea / Coffee / Milk (200ml)",
+        items: [
+          { name: "Poori + Aloo Chole Curry (50% each ratio)", isVeg: true },
+          { name: "Toasted Bread (5 slices) with Butter & Jam", isVeg: true },
+          { name: "Sprouts (50g)", isVeg: true },
+          { name: "Tea / Coffee / Milk (200ml)", isVeg: true },
+          { name: "Banana (Big size)", isVeg: true },
+        ],
+      },
+      {
+        mealType: MealType.LUNCH,
+        notes: "Special Friday Lunch: Biryani, Kadai Paneer / Egg Bhurji (2 eggs), Jaggery Jalebi",
+        items: [
+          { name: "Biryani with Raitha", isVeg: true },
+          { name: "Kadai Paneer (1 cup) (Veg)", isVeg: true },
+          { name: "Egg Bhurji / Masala Fried Egg (2 eggs) (Non-Veg)", isVeg: false },
+          { name: "Toor Dal", isVeg: true },
+          { name: "Jaggery Jalebi", isVeg: true },
+          { name: "Steamed Rice & Roti", isVeg: true },
+          { name: "Sambar", isVeg: true },
+          { name: "Veg Salad (Carrot + Cucumber + Beetroot)", isVeg: true },
+          { name: "Fresh Curd (100g)", isVeg: true },
+          { name: "Fryums & Dondakaya Tomato Pickle", isVeg: true },
+        ],
+      },
+      {
+        mealType: MealType.SNACKS,
+        notes: "Evening Snacks & Hot Beverages",
+        items: [
+          { name: "Pani Puri (8 nos)", isVeg: true },
+          { name: "Tea / Coffee / Milk", isVeg: true },
+        ],
+      },
+      {
+        mealType: MealType.DINNER,
+        notes: "Daily base: Rice, Roti, Rasam, Curd (100g) & Pickle",
+        items: [
+          { name: "Aloo Deep Fry", isVeg: true },
+          { name: "Tomato Dal (50% ratio)", isVeg: true },
+          { name: "Steamed Rice & Roti", isVeg: true },
+          { name: "Rasam", isVeg: true },
+          { name: "Fresh Curd (100g) & Pickle", isVeg: true },
+          { name: "Seasonal Fruit (1 no)", isVeg: true },
+        ],
+      },
+    ],
+    // 6: Saturday
+    6: [
+      {
+        mealType: MealType.BREAKFAST,
+        notes: "Daily standard: Toasted Bread (5 slices), Butter (20g), Jam (20g), Sprouts (50g), Tea / Coffee / Milk (200ml), Boiled Egg (1 no) / Banana (Big size)",
+        items: [
+          { name: "Masala Dosa (masala with aloo & onion of equal ratio)", isVeg: true },
+          { name: "White Chutney", isVeg: true },
+          { name: "Toasted Bread (5 slices) with Butter & Jam", isVeg: true },
+          { name: "Sprouts (50g)", isVeg: true },
+          { name: "Tea / Coffee / Milk (200ml)", isVeg: true },
+          { name: "Boiled Egg (1 no)", isVeg: false },
+          { name: "Banana (Big size)", isVeg: true },
+        ],
+      },
+      {
+        mealType: MealType.LUNCH,
+        notes: "Saturday Feast: Mudda Pappu, Aavakaya & Ghee, Carrot Halwa",
+        items: [
+          { name: "Tomato Khadi Pakodi", isVeg: true },
+          { name: "Mudda Pappu + Aavakaya Pickle + Pure Ghee", isVeg: true },
+          { name: "Carrot Halwa", isVeg: true },
+          { name: "Steamed Rice & Roti", isVeg: true },
+          { name: "Sambar", isVeg: true },
+          { name: "Veg Salad (Carrot + Cucumber + Beetroot)", isVeg: true },
+          { name: "Fresh Curd (100g)", isVeg: true },
+          { name: "Roasted Papad (1 no)", isVeg: true },
+        ],
+      },
+      {
+        mealType: MealType.SNACKS,
+        notes: "Evening Snacks & Hot Beverages",
+        items: [
+          { name: "Pav Bhaji (1 pav)", isVeg: true },
+          { name: "Tea / Coffee / Milk", isVeg: true },
+        ],
+      },
+      {
+        mealType: MealType.DINNER,
+        notes: "Daily base: Rice, Roti, Rasam, Curd (100g) & Pickle",
+        items: [
+          { name: "Jeera Rice & Dal Fry", isVeg: true },
+          { name: "Veg Kofta Curry", isVeg: true },
+          { name: "Palak Dal (50% ratio)", isVeg: true },
+          { name: "Steamed Rice & Roti", isVeg: true },
+          { name: "Rasam", isVeg: true },
+          { name: "Fresh Curd (100g) & Pickle", isVeg: true },
+          { name: "Papaya (2 slices) / Banana / Guava", isVeg: true },
+        ],
+      },
+    ],
+    // 0: Sunday
+    0: [
+      {
+        mealType: MealType.BREAKFAST,
+        notes: "Daily standard: Toasted Bread (5 slices), Butter (20g), Jam (20g), Sprouts (50g), Tea / Coffee / Milk (200ml), Boiled Egg (1 no) / Banana (Big size)",
+        items: [
+          { name: "Aloo Paratha", isVeg: true },
+          { name: "Fresh Curd", isVeg: true },
+          { name: "Tomato Sauce / Tomato Chutney", isVeg: true },
+          { name: "Toasted Bread (5 slices) with Butter & Jam", isVeg: true },
+          { name: "Sprouts (50g)", isVeg: true },
+          { name: "Tea / Coffee / Milk (200ml)", isVeg: true },
+          { name: "Boiled Egg (1 no)", isVeg: false },
+          { name: "Banana (Big size)", isVeg: true },
+        ],
+      },
+      {
+        mealType: MealType.LUNCH,
+        notes: "Sunday Special Lunch: Pulav / Bagara Rice, Chekkara Pongali / Double Ka Meetha",
+        items: [
+          { name: "Plain Pulav / Bagara Rice", isVeg: true },
+          { name: "Mutter Curry", isVeg: true },
+          { name: "Tomato Dal", isVeg: true },
+          { name: "Chekkara Pongali / Double Ka Meetha", isVeg: true },
+          { name: "Steamed Rice & Roti", isVeg: true },
+          { name: "Sambar", isVeg: true },
+          { name: "Veg Salad (Carrot + Cucumber + Beetroot)", isVeg: true },
+          { name: "Fresh Curd (100g)", isVeg: true },
+          { name: "Fryums & Anapakaya Tomato Pickle", isVeg: true },
+        ],
+      },
+      {
+        mealType: MealType.SNACKS,
+        notes: "Evening Snacks & Hot Beverages",
+        items: [
+          { name: "Punugulu with White Chutney", isVeg: true },
+          { name: "Tea / Coffee / Milk", isVeg: true },
+        ],
+      },
+      {
+        mealType: MealType.DINNER,
+        notes: "Sunday Grand Feast: Chicken Curry (Non-Veg) / Paneer Butter Masala (Veg), Butterscotch Ice Cream",
+        items: [
+          { name: "Bagara Rice", isVeg: true },
+          { name: "Paneer Butter Masala (Veg)", isVeg: true },
+          { name: "Chicken Curry (Non-Veg) with Lemon & Onion slices", isVeg: false },
+          { name: "Dal Tadka", isVeg: true },
+          { name: "Steamed Rice & Roti", isVeg: true },
+          { name: "Rasam", isVeg: true },
+          { name: "Fresh Curd (100g) & Pickle", isVeg: true },
+          { name: "Guava (100g)", isVeg: true },
+          { name: "Butterscotch Ice Cream (2 scoops)", isVeg: true },
+        ],
+      },
+    ],
+  };
+
+  // Seed 4-week window (28 days) centered around today (2026-10-26 Monday to 2026-11-22 Sunday)
+  const startDate = new Date(Date.UTC(2026, 9, 26, 0, 0, 0, 0)); // Oct 26, 2026
+  const totalDays = 28;
+  const days = Array.from({ length: totalDays }, (_, i) => {
+    return new Date(startDate.getTime() + i * 24 * 60 * 60 * 1000);
+  });
+
+  let seededSlotsCount = 0;
+  const BATCH_SIZE = 4;
+
+  for (let i = 0; i < days.length; i += BATCH_SIZE) {
+    const batch = days.slice(i, i + BATCH_SIZE);
+    await Promise.all(
+      batch.map(async (currentDate) => {
+        const dayOfWeek = currentDate.getUTCDay();
+        const slots = WEEKLY_MENU_TEMPLATE[dayOfWeek] || [];
+
+        for (const slot of slots) {
+          const menu = await prisma.menu.upsert({
+            where: {
+              messId_date_mealType: {
+                messId: akshaya.id,
+                date: currentDate,
+                mealType: slot.mealType,
+              },
+            },
+            update: {
+              notes: slot.notes,
+              createdById: superAdmin.id,
+            },
+            create: {
+              messId: akshaya.id,
+              date: currentDate,
+              mealType: slot.mealType,
+              notes: slot.notes,
+              createdById: superAdmin.id,
+            },
+          });
+
+          await prisma.menuItem.deleteMany({
+            where: { menuId: menu.id },
+          });
+
+          await prisma.menuItem.createMany({
+            data: slot.items.map((item, idx) => ({
+              menuId: menu.id,
+              name: item.name,
+              isVeg: item.isVeg,
+              sortOrder: idx + 1,
+            })),
+          });
+
+          seededSlotsCount++;
+        }
+      })
+    );
+  }
+
+  console.log(`✓ Seeded ${seededSlotsCount} meal slots across 4 weeks with official NIT AP Akshaya & Kamadhenu Mess menu`);
+
   console.log("Database seed completed successfully.");
 }
 
