@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { ConsoleEmailProvider } from "./email.provider.js";
+import { ConsoleEmailProvider, NodemailerEmailAdapter } from "./email.provider.js";
 import { renderGiftCouponEmail } from "./email.templates.js";
 import { EmailOutboxWorker } from "./outbox.worker.js";
 import { verifyEmailWebhookSignature } from "./notification.routes.js";
@@ -368,6 +368,45 @@ describe("Phase 21: Gift Email Delivery & Outbox (§20, §21)", () => {
 
       const valid = verifyEmailWebhookSignature(rawBody, headers, secret);
       expect(valid).toBe(false);
+    });
+  });
+
+  describe("21.5 Nodemailer Email Adapter with Bypass Support", () => {
+    it("safely handles bypass mode when SMTP credentials are not configured", async () => {
+      const unconfiguredAdapter = new NodemailerEmailAdapter({ user: "", pass: "" });
+      const result = await unconfiguredAdapter.send({
+        to: "student@campus.edu",
+        subject: "Your OTP",
+        html: "<p>OTP: 123456</p>",
+      });
+
+      expect(result.providerMessageId).toBeDefined();
+      expect(result.providerMessageId).toContain("nodemailer-bypass");
+    });
+
+    it("dispatches email when SMTP credentials are provided", async () => {
+      const configuredAdapter = new NodemailerEmailAdapter({
+        user: "test@campus.edu",
+        pass: "secret_password",
+      });
+
+      // Mock the transporter's sendMail
+      const sendMailMock = vi.fn().mockResolvedValue({ messageId: "mock_smtp_msg_123" });
+      (configuredAdapter as any).transporter = { sendMail: sendMailMock };
+
+      const result = await configuredAdapter.send({
+        to: "recipient@campus.edu",
+        subject: "Your Gift Pass",
+        html: "<b>Welcome</b>",
+      });
+
+      expect(sendMailMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          to: "recipient@campus.edu",
+          subject: "Your Gift Pass",
+        }),
+      );
+      expect(result.providerMessageId).toBe("mock_smtp_msg_123");
     });
   });
 });

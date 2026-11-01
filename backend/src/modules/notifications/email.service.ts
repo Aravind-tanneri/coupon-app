@@ -1,5 +1,4 @@
-import { env } from "../../config/env.js";
-import { logger } from "../../config/logger.js";
+import { getEmailProvider } from "./email.provider.js";
 
 export interface EmailOptions {
   to: string;
@@ -10,42 +9,14 @@ export interface EmailOptions {
 
 export class EmailService {
   async sendEmail(options: EmailOptions): Promise<{ id: string }> {
-    if (env.NODE_ENV === "test" || !env.RESEND_API_KEY) {
-      logger.info(
-        { to: options.to, subject: options.subject },
-        "Email delivery simulated (test/dev environment)",
-      );
-      return { id: `email-mock-${Date.now()}` };
-    }
-
-    try {
-      const response = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${env.RESEND_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          from: env.EMAIL_FROM,
-          to: [options.to],
-          subject: options.subject,
-          html: options.html,
-          text: options.text,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        logger.error({ errorText, status: response.status }, "Resend email delivery failed");
-        throw new Error(`Email provider error: ${response.statusText}`);
-      }
-
-      const data = (await response.json()) as { id: string };
-      return { id: data.id };
-    } catch (err) {
-      logger.error({ err, to: options.to }, "Failed to send email");
-      throw err;
-    }
+    const provider = getEmailProvider();
+    const result = await provider.send({
+      to: options.to,
+      subject: options.subject,
+      html: options.html,
+      text: options.text,
+    });
+    return { id: result.providerMessageId };
   }
 
   async sendOtpEmail(toEmail: string, studentName: string, otpCode: string): Promise<void> {
