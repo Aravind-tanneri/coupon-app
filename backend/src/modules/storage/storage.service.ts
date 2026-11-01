@@ -5,15 +5,31 @@ import { NotFoundError, BadRequestError } from "../../lib/errors.js";
 import { auditService } from "../audit/audit.service.js";
 import { StorageProvider } from "./storage.provider.js";
 import { FakeStorageProvider } from "./fake-storage.provider.js";
+import { CloudinaryStorageAdapter } from "./cloudinary-storage.provider.js";
 import { validateMediaFile } from "./file-validator.js";
+import { env } from "../../config/env.js";
 
 export const MAX_DOCUMENTS_PER_CLAIM = 3; // Max 3 files per claim (§25)
+
+export function getStorageProvider(): StorageProvider {
+  if (env.NODE_ENV === "test") {
+    return new FakeStorageProvider();
+  }
+  const cloudName = env.CLOUDINARY_CLOUD_NAME || env.CLOUD_NAME;
+  const apiKey = env.CLOUDINARY_API_KEY || env.API_KEY;
+  const apiSecret = env.CLOUDINARY_API_SECRET || env.API_SECRET;
+
+  if (cloudName && apiKey && apiSecret) {
+    return new CloudinaryStorageAdapter();
+  }
+  return new FakeStorageProvider();
+}
 
 export class StorageService {
   private provider: StorageProvider;
 
   constructor(provider?: StorageProvider) {
-    this.provider = provider ?? new FakeStorageProvider();
+    this.provider = provider ?? getStorageProvider();
   }
 
   setProvider(provider: StorageProvider) {

@@ -31,10 +31,36 @@ export const envSchema = z.object({
   RESEND_WEBHOOK_SECRET: z.string().optional(),
   EMAIL_FROM: z.string().email().default("mess@campus.edu"),
 
+  // Nodemailer / SMTP settings (supports both SMTP_* and MAIL_* prefixes)
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.coerce.number().int().optional(),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASS: z.string().optional(),
+  SMTP_PASSWORD: z.string().optional(),
+  SMTP_SECURE: z.coerce.boolean().optional(),
+  SMTP_FROM: z.string().optional(),
+
+  MAIL_HOST: z.string().optional(),
+  MAIL_PORT: z.coerce.number().int().optional(),
+  MAIL_USER: z.string().optional(),
+  MAIL_PASS: z.string().optional(),
+  MAIL_PASSWORD: z.string().optional(),
+
   STORAGE_BUCKET: z.string().optional(),
   STORAGE_ENDPOINT: z.string().optional(),
   STORAGE_ACCESS_KEY: z.string().optional(),
   STORAGE_SECRET_KEY: z.string().optional(),
+
+  // Cloudinary storage settings (supports CLOUDINARY_* and short names API_KEY/API_SECRET/CLOUD_NAME)
+  CLOUDINARY_CLOUD_NAME: z.string().optional(),
+  CLOUDINARY_API_KEY: z.string().optional(),
+  CLOUDINARY_API_SECRET: z.string().optional(),
+  CLOUDINARY_FOLDER: z.string().optional(),
+
+  CLOUD_NAME: z.string().optional(),
+  API_KEY: z.string().optional(),
+  API_SECRET: z.string().optional(),
+  FOLDER_NAME: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

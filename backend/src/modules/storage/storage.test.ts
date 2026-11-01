@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { validateMediaFile, MAX_FILE_SIZE_BYTES } from "./file-validator.js";
-import { StorageService } from "./storage.service.js";
+import { StorageService, getStorageProvider } from "./storage.service.js";
+import { CloudinaryStorageAdapter } from "./cloudinary-storage.provider.js";
+import { Writable } from "stream";
+import { v2 as cloudinary } from "cloudinary";
 import { FakeStorageProvider } from "./fake-storage.provider.js";
 import { prisma } from "../../lib/prisma.js";
 import { BadRequestError, NotFoundError } from "../../lib/errors.js";
@@ -200,6 +203,84 @@ describe("Phase 19: Reimbursement Documents & Storage Security (§25)", () => {
       await expect(service.getSignedDocumentUrl("unknown", "admin-1")).rejects.toThrow(
         NotFoundError,
       );
+    });
+  });
+
+  describe("Cloudinary Storage Adapter with Bypass Support (§25)", () => {
+    it("handles unconfigured bypass mode gracefully for upload, sign, and delete", async () => {
+      const adapter = new CloudinaryStorageAdapter({
+        cloudName: "",
+        apiKey: "",
+        apiSecret: "",
+      });
+
+      const buffer = Buffer.from("test document data");
+      const uploadRes = await adapter.upload("reimb/claim-1/slip.pdf", buffer, "application/pdf");
+      expect(uploadRes.key).toBe("reimb/claim-1/slip.pdf");
+      expect(uploadRes.sizeBytes).toBe(buffer.length);
+      expect(uploadRes.mime).toBe("application/pdf");
+
+      const signedUrl = await adapter.getSignedUrl("reimb/claim-1/slip.pdf", 60);
+      expect(signedUrl).toContain("https://fake-storage.local/reimb/claim-1/slip.pdf");
+      expect(signedUrl).toContain("bypass=cloudinary");
+
+      await expect(adapter.delete("reimb/claim-1/slip.pdf")).resolves.toBeUndefined();
+      const exists = await adapter.exists("reimb/claim-1/slip.pdf");
+      expect(exists).toBe(true);
+    });
+
+    it("uploads stream and signs URLs when Cloudinary is configured", async () => {
+      const adapter = new CloudinaryStorageAdapter({
+        cloudName: "demo-cloud",
+        apiKey: "1234567890",
+        apiSecret: "secretkey123",
+        folder: "coupon-app-test",
+      });
+
+      const fakeStream = new Writable({
+        write(_chunk, _encoding, callback) {
+          callback();
+        },
+      });
+
+      (vi.spyOn(cloudinary.uploader, "upload_stream") as any).mockImplementation(
+        (options: any, callback: any) => {
+          if (callback) {
+            process.nextTick(() =>
+              callback(null, {
+                public_id: options.public_id,
+                bytes: 1024,
+              }),
+            );
+          }
+          return fakeStream as any;
+        },
+      );
+
+      vi.spyOn(cloudinary, "url").mockReturnValue(
+        "https://res.cloudinary.com/demo-cloud/image/upload/s--xyz--/v1/coupon-app-test/reimb/claim-1/slip.jpg",
+      );
+
+      vi.spyOn(cloudinary.uploader, "destroy").mockResolvedValue({ result: "ok" } as any);
+      vi.spyOn(cloudinary.api, "resource").mockResolvedValue({ public_id: "test" } as any);
+
+      const buffer = Buffer.from("image bytes");
+      const res = await adapter.upload("reimb/claim-1/slip.jpg", buffer, "image/jpeg");
+      expect(res.key).toBe("reimb/claim-1/slip.jpg");
+      expect(res.sizeBytes).toBe(1024);
+
+      const url = await adapter.getSignedUrl("reimb/claim-1/slip.jpg", 60);
+      expect(url).toContain("res.cloudinary.com");
+      expect(url).toContain("coupon-app-test");
+
+      await expect(adapter.delete("reimb/claim-1/slip.jpg")).resolves.toBeUndefined();
+      const exists = await adapter.exists("reimb/claim-1/slip.jpg");
+      expect(exists).toBe(true);
+    });
+
+    it("getStorageProvider returns FakeStorageProvider in test environment", () => {
+      const provider = getStorageProvider();
+      expect(provider).toBeInstanceOf(FakeStorageProvider);
     });
   });
 });
