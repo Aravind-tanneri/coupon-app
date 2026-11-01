@@ -23,7 +23,7 @@ services:
           name: campus-mess-db
           property: connectionString
       - key: FRONTEND_URL
-        value: https://admin.campusmess.in
+        value: https://coupon-app-gdsc.vercel.app
       - key: DEFAULT_MESS_CODE
         value: AKSHAYA
       - key: SESSION_SECRET
@@ -83,7 +83,7 @@ services:
           name: campus-mess-db
           property: connectionString
       - key: FRONTEND_URL
-        value: https://admin.campusmess.in
+        value: https://coupon-app-gdsc.vercel.app
       - key: DEFAULT_MESS_CODE
         value: AKSHAYA
       - key: PAYOUT_ENCRYPTION_KEY
