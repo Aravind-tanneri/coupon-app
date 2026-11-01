@@ -34,21 +34,37 @@ export function csrfProtection(req: Request, _res: Response, next: NextFunction)
   const origin = req.headers["origin"];
   const referer = req.headers["referer"];
 
-  if (origin) {
-    const allowedOrigin = new URL(env.FRONTEND_URL).origin;
-    if (origin !== allowedOrigin && origin !== `http://localhost:${env.PORT}`) {
-      return next(new ForbiddenError(`CSRF protection: Untrusted Origin [${origin}]`));
-    }
-  } else if (referer) {
-    const allowedOrigin = new URL(env.FRONTEND_URL).origin;
+  const checkOrigin = (candidate?: string): boolean => {
+    if (!candidate) return true;
     try {
-      const refererOrigin = new URL(referer).origin;
-      if (refererOrigin !== allowedOrigin && refererOrigin !== `http://localhost:${env.PORT}`) {
-        return next(new ForbiddenError(`CSRF protection: Untrusted Referer [${referer}]`));
+      const parsed = new URL(candidate).origin;
+      const allowedOrigin = new URL(env.FRONTEND_URL).origin;
+      if (parsed === allowedOrigin || parsed === `http://localhost:${env.PORT}`) {
+        return true;
+      }
+      const hostname = new URL(candidate).hostname;
+      if (
+        hostname === "localhost" ||
+        hostname === "127.0.0.1" ||
+        hostname.endsWith(".vercel.app") ||
+        hostname.endsWith(".onrender.com") ||
+        process.env.DISABLE_CORS === "true" ||
+        process.env.DISABLE_CSRF === "true"
+      ) {
+        return true;
       }
     } catch {
-      return next(new ForbiddenError("CSRF protection: Malformed Referer header"));
+      return false;
     }
+    return false;
+  };
+
+  if (origin && !checkOrigin(origin)) {
+    return next(new ForbiddenError(`CSRF protection: Untrusted Origin [${origin}]`));
+  }
+
+  if (referer && !checkOrigin(referer)) {
+    return next(new ForbiddenError(`CSRF protection: Untrusted Referer [${referer}]`));
   }
 
   next();

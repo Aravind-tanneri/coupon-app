@@ -9,7 +9,7 @@ import { UnauthorizedError, ValidationError } from "../../lib/errors.js";
 const cookieOptions = {
   httpOnly: true,
   secure: env.NODE_ENV === "production",
-  sameSite: "lax" as const,
+  sameSite: (env.NODE_ENV === "production" ? "none" : "lax") as "none" | "lax",
   path: "/",
   maxAge: ABSOLUTE_TIMEOUT_MS,
 };
@@ -43,7 +43,12 @@ export async function logoutHandler(
       await authService.logout(token);
     }
 
-    res.clearCookie(SESSION_COOKIE_NAME, { path: "/" });
+    res.clearCookie(SESSION_COOKIE_NAME, {
+      path: "/",
+      httpOnly: true,
+      secure: env.NODE_ENV === "production",
+      sameSite: (env.NODE_ENV === "production" ? "none" : "lax") as "none" | "lax",
+    });
     res.status(200).json({
       success: true,
       message: "Logged out successfully",

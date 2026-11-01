@@ -52,6 +52,7 @@ export function createApp(options: CreateAppOptions = {}): Express {
 
   // Cross-Origin Resource Sharing
   app.use(corsMiddleware);
+  app.options("*", corsMiddleware);
 
   // Request ID tracking
   app.use(requestIdMiddleware);
