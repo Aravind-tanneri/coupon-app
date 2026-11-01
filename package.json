@@ -8,6 +8,9 @@
     "frontend"
   ],
   "scripts": {
+    "dev": "npm run dev --workspace=@campus-mess/backend",
+    "dev:backend": "npm run dev --workspace=@campus-mess/backend",
+    "dev:frontend": "npm run dev --workspace=@campus-mess/frontend",
     "build": "npm run build --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",

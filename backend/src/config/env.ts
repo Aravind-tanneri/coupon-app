@@ -1,6 +1,23 @@
+import path from "path";
+import fs from "fs";
+import { fileURLToPath } from "url";
 import { z } from "zod";
 import dotenv from "dotenv";
 
+// Load .env from process.cwd(), parent directories (monorepo root), or relative to this file
+const currentDir = path.dirname(fileURLToPath(import.meta.url));
+const candidateEnvPaths = [
+  path.resolve(process.cwd(), ".env"),
+  path.resolve(process.cwd(), "..", ".env"),
+  path.resolve(currentDir, "../../../.env"),
+  path.resolve(currentDir, "../../.env"),
+];
+
+for (const envPath of candidateEnvPaths) {
+  if (fs.existsSync(envPath)) {
+    dotenv.config({ path: envPath });
+  }
+}
 dotenv.config();
 
 export const envSchema = z.object({
