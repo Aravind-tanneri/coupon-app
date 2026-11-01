@@ -27,3 +27,4 @@ echo "🧹 Cleaning up backups older than ${RETENTION_DAYS} days in ${BACKUP_DIR
 find "${BACKUP_DIR}" -type f -name "campus_mess_*.sql.gz" -mtime +"${RETENTION_DAYS}" -exec rm -f {} +
 
 echo "🎉 Database backup and retention cycle complete."
+

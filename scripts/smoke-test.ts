@@ -103,19 +103,26 @@ async function execute() {
     }
     const body = await res.json();
     if (!body.error || body.error.code !== "NOT_FOUND") {
-      throw new Error(`Expected standard error envelope with NOT_FOUND code, got: ${JSON.stringify(body)}`);
+      throw new Error(
+        `Expected standard error envelope with NOT_FOUND code, got: ${JSON.stringify(body)}`,
+      );
     }
   });
 
   // 5. Protected Endpoint Authentication Boundary
-  await runCheck("5. Unauthenticated Admin Perimeter Rejection (/api/v1/reimbursements/requests)", async () => {
-    const res = await fetch(`${targetUrl}/api/v1/reimbursements/requests`, {
-      signal: AbortSignal.timeout(5000),
-    });
-    if (res.status !== 401) {
-      throw new Error(`Expected HTTP 401 Unauthorized for admin route, received HTTP ${res.status}`);
-    }
-  });
+  await runCheck(
+    "5. Unauthenticated Admin Perimeter Rejection (/api/v1/reimbursements/requests)",
+    async () => {
+      const res = await fetch(`${targetUrl}/api/v1/reimbursements/requests`, {
+        signal: AbortSignal.timeout(5000),
+      });
+      if (res.status !== 401) {
+        throw new Error(
+          `Expected HTTP 401 Unauthorized for admin route, received HTTP ${res.status}`,
+        );
+      }
+    },
+  );
 
   // Summary
   console.log("\n==================================================================");

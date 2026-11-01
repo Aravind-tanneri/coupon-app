@@ -29,11 +29,7 @@ async function runBackup() {
     fs.mkdirSync(outputDir, { recursive: true });
   }
 
-  const timestamp = new Date()
-    .toISOString()
-    .replace(/[:.]/g, "-")
-    .replace("T", "_")
-    .slice(0, 19);
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-").replace("T", "_").slice(0, 19);
   const backupFile = path.join(outputDir, `campus_mess_backup_${timestamp}.sql`);
 
   console.log(`\n📦 Starting PostgreSQL Database Backup...`);
