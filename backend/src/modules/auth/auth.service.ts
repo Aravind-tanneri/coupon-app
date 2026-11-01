@@ -139,6 +139,29 @@ export class AuthService {
 
     return { sessionToken };
   }
+
+  /**
+   * Mock/demo password reset workflow: updates user's password in demo mode.
+   */
+  async mockResetPassword(email: string, newPassword: string): Promise<void> {
+    const user = await prisma.adminUser.findUnique({
+      where: { email: email.toLowerCase().trim() },
+    });
+
+    if (!user) {
+      throw new NotFoundError("Admin user not found with this email");
+    }
+
+    const newHash = await hashPassword(newPassword);
+
+    await prisma.adminUser.update({
+      where: { id: user.id },
+      data: { passwordHash: newHash },
+    });
+
+    // Revoke previous sessions
+    await sessionService.revokeAllUserSessions(user.id);
+  }
 }
 
 export const authService = new AuthService();

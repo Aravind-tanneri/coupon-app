@@ -4,7 +4,7 @@ import { loginSchema, changePasswordSchema } from "./auth.schemas.js";
 import { SESSION_COOKIE_NAME, ABSOLUTE_TIMEOUT_MS } from "./session.service.js";
 import { extractSessionToken } from "../../middleware/session.js";
 import { env } from "../../config/env.js";
-import { UnauthorizedError } from "../../lib/errors.js";
+import { UnauthorizedError, ValidationError } from "../../lib/errors.js";
 
 const cookieOptions = {
   httpOnly: true,
@@ -87,6 +87,52 @@ export async function changePasswordHandler(
       success: true,
       message: "Password changed successfully. Other sessions have been revoked.",
       sessionToken,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function forgotPasswordHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const { email } = req.body;
+    if (!email || typeof email !== "string" || !email.includes("@")) {
+      throw new ValidationError("Valid email address is required");
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Password reset instructions dispatched.",
+      demoToken: "MESS-8492",
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function resetPasswordHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const { email, token, newPassword } = req.body;
+    if (!email || !token || !newPassword) {
+      throw new ValidationError("Email, token, and new password are required");
+    }
+    if (typeof newPassword !== "string" || newPassword.length < 8) {
+      throw new ValidationError("New password must be at least 8 characters");
+    }
+
+    await authService.mockResetPassword(email, newPassword);
+
+    res.status(200).json({
+      success: true,
+      message: "Password updated successfully. You can now log in.",
     });
   } catch (error) {
     next(error);

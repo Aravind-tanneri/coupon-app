@@ -42,6 +42,29 @@ async function main(): Promise<void> {
   });
   console.log(`✓ Super Admin seeded: ${superAdmin.email}`);
 
+  // 2b. Seed MESS_STAFF for counter operations
+  const rawStaffPassword = process.env.STAFF_PASSWORD || "StaffPassword123!";
+  const staffPasswordHash = await hashPassword(rawStaffPassword);
+  const counterStaff = await prisma.adminUser.upsert({
+    where: { email: "staff@campus.edu" },
+    update: {
+      role: AdminRole.MESS_STAFF,
+      name: "Akshaya Counter Staff",
+      passwordHash: staffPasswordHash,
+      messId: akshaya.id,
+      active: true,
+    },
+    create: {
+      email: "staff@campus.edu",
+      name: "Akshaya Counter Staff",
+      role: AdminRole.MESS_STAFF,
+      passwordHash: staffPasswordHash,
+      messId: akshaya.id,
+      active: true,
+    },
+  });
+  console.log(`✓ Mess Staff seeded: ${counterStaff.email}`);
+
   // 3. Seed Reimbursement Policy (₹131/day, min 4 days)
   const existingPolicy = await prisma.reimbursementPolicy.findFirst({
     where: { messId: akshaya.id, effectiveUntil: null },

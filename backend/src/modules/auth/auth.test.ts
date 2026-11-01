@@ -6,8 +6,8 @@ import {
   createUserSchema,
   updateUserSchema,
 } from "./auth.schemas.js";
-import { toAdminUserDTO } from "./auth.service.js";
-import { IDLE_TIMEOUT_MS, ABSOLUTE_TIMEOUT_MS } from "./session.service.js";
+import { toAdminUserDTO, authService } from "./auth.service.js";
+import { IDLE_TIMEOUT_MS, ABSOLUTE_TIMEOUT_MS, sessionService } from "./session.service.js";
 import { UserService } from "./user.service.js";
 import { prisma } from "../../lib/prisma.js";
 import { BusinessRuleError } from "../../lib/errors.js";
@@ -128,6 +128,44 @@ describe("Authentication & User Management Domain (§2)", () => {
       await expect(userService.updateUser("super-1", { role: AdminRole.ADMIN })).rejects.toThrow(
         BusinessRuleError,
       );
+
+      vi.restoreAllMocks();
+    });
+  });
+
+  describe("Auth Service: Mock Password Reset Workflow", () => {
+    it("updates password and revokes previous sessions when user exists", async () => {
+      const user = {
+        id: "usr-admin",
+        email: "admin@campus.edu",
+        passwordHash: "oldHash",
+        active: true,
+      };
+
+      vi.spyOn(prisma.adminUser, "findUnique").mockResolvedValue(user as any);
+      vi.spyOn(prisma.adminUser, "update").mockResolvedValue(user as any);
+      vi.spyOn(sessionService, "revokeAllUserSessions").mockResolvedValue();
+
+      await authService.mockResetPassword("admin@campus.edu", "BrandNewPassword123!");
+
+      expect(prisma.adminUser.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: "usr-admin" },
+          data: expect.objectContaining({
+            passwordHash: expect.any(String),
+          }),
+        }),
+      );
+
+      vi.restoreAllMocks();
+    });
+
+    it("throws NotFoundError when admin user email is not found", async () => {
+      vi.spyOn(prisma.adminUser, "findUnique").mockResolvedValue(null);
+
+      await expect(
+        authService.mockResetPassword("nonexistent@campus.edu", "NewPassword123!"),
+      ).rejects.toThrow();
 
       vi.restoreAllMocks();
     });
