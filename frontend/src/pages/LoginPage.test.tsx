@@ -40,7 +40,7 @@ vi.mock("../lib/api", () => {
             sessionToken: "demo_token_123",
           });
         }
-        if (path === "/auth/forgot-password") {
+        if (path === "/auth/forgot-password" || path === "/auth/resend-otp") {
           return Promise.resolve({
             success: true,
             demoToken: "MESS-8492",
@@ -209,6 +209,29 @@ describe("LoginPage Demo Login & Mock Password Reset Workflow", () => {
           expect.stringMatching(/password reset successful/i),
         );
       });
+    });
+
+    it("displays resend OTP with cooldown timer and sends new code", async () => {
+      await renderComponent();
+
+      // Open modal
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: /forgot password\?/i }));
+      });
+
+      // Request token
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: /generate reset token/i }));
+      });
+
+      // Verify step is visible with countdown
+      await waitFor(() => {
+        expect(screen.getByText(/resend otp \(\d+s\)/i)).toBeInTheDocument();
+      });
+
+      // Button is disabled during cooldown
+      const resendBtn = screen.getByText(/resend otp \(\d+s\)/i).closest("button")!;
+      expect(resendBtn).toBeDisabled();
     });
   });
 });
