@@ -11,7 +11,7 @@
     "dev": "npm run dev --workspace=@campus-mess/backend",
     "dev:backend": "npm run dev --workspace=@campus-mess/backend",
     "dev:frontend": "npm run dev --workspace=@campus-mess/frontend",
-    "build": "npm run build --workspaces --if-present",
+    "build": "npm run prisma:generate && npm run build --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
@@ -23,6 +23,7 @@
     "prisma:migrate": "prisma migrate dev --schema=prisma/schema.prisma",
     "prisma:seed": "tsx prisma/seed.ts",
     "smoke-test": "tsx scripts/smoke-test.ts",
+    "postinstall": "prisma generate --schema=prisma/schema.prisma",
     "prepare": "node -e \"if (!process.env.CI) { try { require('child_process').execSync('npx husky', { stdio: 'inherit' }); } catch(e) {} }\""
   },
   "lint-staged": {
@@ -36,10 +37,12 @@
       "prettier --write"
     ]
   },
+  "dependencies": {
+    "prisma": "^6.4.0"
+  },
   "devDependencies": {
     "husky": "^9.1.7",
     "lint-staged": "^16.4.0",
-    "prettier": "^3.5.2",
-    "prisma": "^6.4.0"
+    "prettier": "^3.5.2"
   }
 }
