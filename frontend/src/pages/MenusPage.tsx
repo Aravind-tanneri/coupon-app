@@ -158,7 +158,7 @@ export const MenusPage: React.FC = () => {
     setSavingSlot(true);
     try {
       await api.post("/menus/slot", {
-        messId: user?.messId || menus[0]?.messId || "default",
+        messId: user?.messId || menus[0]?.messId || "AKSHAYA",
         date: editingSlot.date,
         mealType: editingSlot.mealType,
         notes: editingSlot.notes.trim() || undefined,
@@ -191,7 +191,7 @@ export const MenusPage: React.FC = () => {
     setCopyingWeek(true);
     try {
       const result = await api.post<{ copiedSlotsCount: number }>("/menus/copy-week", {
-        messId: user?.messId || menus[0]?.messId || "default",
+        messId: user?.messId || menus[0]?.messId || "AKSHAYA",
         sourceStartDate: formatDateToIso(prevMonday),
         targetStartDate: startDateStr,
       });

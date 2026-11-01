@@ -210,6 +210,17 @@ async function main(): Promise<void> {
     { code: "SPECIAL_DINNER", mealType: MealType.SPECIAL_DINNER, pricePaise: 8000, dailyCap: 150, messId: akshaya.id },
     { code: "EXTRA_LUNCH", mealType: MealType.LUNCH, pricePaise: 5000, dailyCap: 100, messId: kamadhenu.id },
     { code: "EXTRA_DINNER", mealType: MealType.DINNER, pricePaise: 5000, dailyCap: 100, messId: kamadhenu.id },
+
+    // Add-On Dishes & Special Curries
+    { code: "EGG_BURJI", mealType: MealType.DINNER, pricePaise: 2500, dailyCap: 100, messId: akshaya.id },
+    { code: "EGG_CURRY", mealType: MealType.DINNER, pricePaise: 3000, dailyCap: 100, messId: akshaya.id },
+    { code: "PANEER_CURRY", mealType: MealType.DINNER, pricePaise: 4500, dailyCap: 100, messId: akshaya.id },
+    { code: "CHICKEN_CURRY", mealType: MealType.DINNER, pricePaise: 5500, dailyCap: 100, messId: akshaya.id },
+
+    { code: "EGG_BURJI", mealType: MealType.DINNER, pricePaise: 2500, dailyCap: 100, messId: kamadhenu.id },
+    { code: "EGG_CURRY", mealType: MealType.DINNER, pricePaise: 3000, dailyCap: 100, messId: kamadhenu.id },
+    { code: "PANEER_CURRY", mealType: MealType.DINNER, pricePaise: 4500, dailyCap: 100, messId: kamadhenu.id },
+    { code: "CHICKEN_CURRY", mealType: MealType.DINNER, pricePaise: 5500, dailyCap: 100, messId: kamadhenu.id },
   ];
 
   const productMap = new Map<string, any>();
@@ -489,52 +500,52 @@ async function main(): Promise<void> {
 
   const couponSpecs: CouponSpec[] = [
     // Today: REDEEMED (Breakfast earlier today)
-    { studentIdx: 0, product: prodBreakfast, mealType: MealType.BREAKFAST, date: todayDate, status: CouponStatus.REDEEMED, shortCode: "BFK-8120", redeemedMinutesAgo: 450 },
-    { studentIdx: 1, product: prodBreakfast, mealType: MealType.BREAKFAST, date: todayDate, status: CouponStatus.REDEEMED, shortCode: "BFK-8121", redeemedMinutesAgo: 440 },
-    { studentIdx: 2, product: prodBreakfast, mealType: MealType.BREAKFAST, date: todayDate, status: CouponStatus.REDEEMED, shortCode: "BFK-8122", redeemedMinutesAgo: 430 },
-    { studentIdx: 3, product: prodBreakfast, mealType: MealType.BREAKFAST, date: todayDate, status: CouponStatus.REDEEMED, shortCode: "BFK-8123", redeemedMinutesAgo: 410 },
+    { studentIdx: 0, product: prodBreakfast, mealType: MealType.BREAKFAST, date: todayDate, status: CouponStatus.REDEEMED, shortCode: "BREK8120", redeemedMinutesAgo: 450 },
+    { studentIdx: 1, product: prodBreakfast, mealType: MealType.BREAKFAST, date: todayDate, status: CouponStatus.REDEEMED, shortCode: "BREK8121", redeemedMinutesAgo: 440 },
+    { studentIdx: 2, product: prodBreakfast, mealType: MealType.BREAKFAST, date: todayDate, status: CouponStatus.REDEEMED, shortCode: "BREK8122", redeemedMinutesAgo: 430 },
+    { studentIdx: 3, product: prodBreakfast, mealType: MealType.BREAKFAST, date: todayDate, status: CouponStatus.REDEEMED, shortCode: "BREK8123", redeemedMinutesAgo: 410 },
 
     // Today: REDEEMED (Lunch earlier today)
-    { studentIdx: 4, product: prodLunch, mealType: MealType.LUNCH, date: todayDate, status: CouponStatus.REDEEMED, shortCode: "LUN-5011", redeemedMinutesAgo: 180 },
-    { studentIdx: 5, product: prodLunch, mealType: MealType.LUNCH, date: todayDate, status: CouponStatus.REDEEMED, shortCode: "LUN-5012", redeemedMinutesAgo: 165 },
-    { studentIdx: 6, product: prodLunch, mealType: MealType.LUNCH, date: todayDate, status: CouponStatus.REDEEMED, shortCode: "LUN-5013", redeemedMinutesAgo: 150 },
-    { studentIdx: 7, product: prodLunch, mealType: MealType.LUNCH, date: todayDate, status: CouponStatus.REDEEMED, shortCode: "LUN-5014", redeemedMinutesAgo: 140 },
-    { studentIdx: 8, product: prodLunch, mealType: MealType.LUNCH, date: todayDate, status: CouponStatus.REDEEMED, shortCode: "LUN-5015", redeemedMinutesAgo: 130 },
-    { studentIdx: 9, product: prodLunch, mealType: MealType.LUNCH, date: todayDate, status: CouponStatus.REDEEMED, shortCode: "LUN-5016", redeemedMinutesAgo: 110 },
+    { studentIdx: 4, product: prodLunch, mealType: MealType.LUNCH, date: todayDate, status: CouponStatus.REDEEMED, shortCode: "TRAY5011", redeemedMinutesAgo: 180 },
+    { studentIdx: 5, product: prodLunch, mealType: MealType.LUNCH, date: todayDate, status: CouponStatus.REDEEMED, shortCode: "TRAY5012", redeemedMinutesAgo: 165 },
+    { studentIdx: 6, product: prodLunch, mealType: MealType.LUNCH, date: todayDate, status: CouponStatus.REDEEMED, shortCode: "TRAY5013", redeemedMinutesAgo: 150 },
+    { studentIdx: 7, product: prodLunch, mealType: MealType.LUNCH, date: todayDate, status: CouponStatus.REDEEMED, shortCode: "TRAY5014", redeemedMinutesAgo: 140 },
+    { studentIdx: 8, product: prodLunch, mealType: MealType.LUNCH, date: todayDate, status: CouponStatus.REDEEMED, shortCode: "TRAY5015", redeemedMinutesAgo: 130 },
+    { studentIdx: 9, product: prodLunch, mealType: MealType.LUNCH, date: todayDate, status: CouponStatus.REDEEMED, shortCode: "TRAY5016", redeemedMinutesAgo: 110 },
 
     // Today: REDEEMED (Snacks)
-    { studentIdx: 10, product: prodSnacks, mealType: MealType.SNACKS, date: todayDate, status: CouponStatus.REDEEMED, shortCode: "SNK-3301", redeemedMinutesAgo: 45 },
-    { studentIdx: 11, product: prodSnacks, mealType: MealType.SNACKS, date: todayDate, status: CouponStatus.REDEEMED, shortCode: "SNK-3302", redeemedMinutesAgo: 35 },
-    { studentIdx: 12, product: prodSnacks, mealType: MealType.SNACKS, date: todayDate, status: CouponStatus.REDEEMED, shortCode: "SNK-3303", redeemedMinutesAgo: 20 },
+    { studentIdx: 10, product: prodSnacks, mealType: MealType.SNACKS, date: todayDate, status: CouponStatus.REDEEMED, shortCode: "SNAK3301", redeemedMinutesAgo: 45 },
+    { studentIdx: 11, product: prodSnacks, mealType: MealType.SNACKS, date: todayDate, status: CouponStatus.REDEEMED, shortCode: "SNAK3302", redeemedMinutesAgo: 35 },
+    { studentIdx: 12, product: prodSnacks, mealType: MealType.SNACKS, date: todayDate, status: CouponStatus.REDEEMED, shortCode: "SNAK3303", redeemedMinutesAgo: 20 },
 
-    // Today: ACTIVE (Ready to be scanned and redeemed live during the demo!)
-    { studentIdx: 0, product: prodLunch, mealType: MealType.LUNCH, date: todayDate, status: CouponStatus.ACTIVE, shortCode: "LUN-8421" },
-    { studentIdx: 1, product: prodLunch, mealType: MealType.LUNCH, date: todayDate, status: CouponStatus.ACTIVE, shortCode: "LUN-9923" },
-    { studentIdx: 2, product: prodDinner, mealType: MealType.DINNER, date: todayDate, status: CouponStatus.ACTIVE, shortCode: "DIN-7741" },
-    { studentIdx: 3, product: prodDinner, mealType: MealType.DINNER, date: todayDate, status: CouponStatus.ACTIVE, shortCode: "DIN-7742" },
-    { studentIdx: 4, product: prodDinner, mealType: MealType.DINNER, date: todayDate, status: CouponStatus.ACTIVE, shortCode: "DIN-7743" },
-    { studentIdx: 5, product: prodDinner, mealType: MealType.DINNER, date: todayDate, status: CouponStatus.ACTIVE, shortCode: "DIN-7744" },
-    { studentIdx: 6, product: prodSpecial, mealType: MealType.SPECIAL_DINNER, date: todayDate, status: CouponStatus.ACTIVE, shortCode: "SPL-1001" },
-    { studentIdx: 7, product: prodSpecial, mealType: MealType.SPECIAL_DINNER, date: todayDate, status: CouponStatus.ACTIVE, shortCode: "SPL-1002" },
+    // Today: ACTIVE (Ready to be scanned and redeemed live during the demo! Unambiguous Crockford Base32)
+    { studentIdx: 0, product: prodLunch, mealType: MealType.LUNCH, date: todayDate, status: CouponStatus.ACTIVE, shortCode: "TRAY8421" },
+    { studentIdx: 1, product: prodLunch, mealType: MealType.LUNCH, date: todayDate, status: CouponStatus.ACTIVE, shortCode: "TRAY9923" },
+    { studentIdx: 2, product: prodDinner, mealType: MealType.DINNER, date: todayDate, status: CouponStatus.ACTIVE, shortCode: "EVEN7741" },
+    { studentIdx: 3, product: prodDinner, mealType: MealType.DINNER, date: todayDate, status: CouponStatus.ACTIVE, shortCode: "EVEN7742" },
+    { studentIdx: 4, product: prodDinner, mealType: MealType.DINNER, date: todayDate, status: CouponStatus.ACTIVE, shortCode: "EVEN7743" },
+    { studentIdx: 5, product: prodDinner, mealType: MealType.DINNER, date: todayDate, status: CouponStatus.ACTIVE, shortCode: "EVEN7744" },
+    { studentIdx: 6, product: prodSpecial, mealType: MealType.SPECIAL_DINNER, date: todayDate, status: CouponStatus.ACTIVE, shortCode: "SPEC1001" },
+    { studentIdx: 7, product: prodSpecial, mealType: MealType.SPECIAL_DINNER, date: todayDate, status: CouponStatus.ACTIVE, shortCode: "SPEC1002" },
 
     // Tomorrow: ACTIVE (Advance purchases)
-    { studentIdx: 8, product: prodLunch, mealType: MealType.LUNCH, date: tomorrowDate, status: CouponStatus.ACTIVE, shortCode: "LUN-2001" },
-    { studentIdx: 9, product: prodLunch, mealType: MealType.LUNCH, date: tomorrowDate, status: CouponStatus.ACTIVE, shortCode: "LUN-2002" },
-    { studentIdx: 10, product: prodDinner, mealType: MealType.DINNER, date: tomorrowDate, status: CouponStatus.ACTIVE, shortCode: "DIN-2003" },
-    { studentIdx: 11, product: prodDinner, mealType: MealType.DINNER, date: tomorrowDate, status: CouponStatus.ACTIVE, shortCode: "DIN-2004" },
-    { studentIdx: 12, product: prodSpecial, mealType: MealType.SPECIAL_DINNER, date: tomorrowDate, status: CouponStatus.ACTIVE, shortCode: "SPL-2005" },
+    { studentIdx: 8, product: prodLunch, mealType: MealType.LUNCH, date: tomorrowDate, status: CouponStatus.ACTIVE, shortCode: "TRAY2001" },
+    { studentIdx: 9, product: prodLunch, mealType: MealType.LUNCH, date: tomorrowDate, status: CouponStatus.ACTIVE, shortCode: "TRAY2002" },
+    { studentIdx: 10, product: prodDinner, mealType: MealType.DINNER, date: tomorrowDate, status: CouponStatus.ACTIVE, shortCode: "EVEN2003" },
+    { studentIdx: 11, product: prodDinner, mealType: MealType.DINNER, date: tomorrowDate, status: CouponStatus.ACTIVE, shortCode: "EVEN2004" },
+    { studentIdx: 12, product: prodSpecial, mealType: MealType.SPECIAL_DINNER, date: tomorrowDate, status: CouponStatus.ACTIVE, shortCode: "SPEC2005" },
 
     // Yesterday & Past Days: REDEEMED
-    { studentIdx: 13, product: prodLunch, mealType: MealType.LUNCH, date: yesterdayDate, status: CouponStatus.REDEEMED, shortCode: "LUN-1091", redeemedMinutesAgo: 1440 + 120 },
-    { studentIdx: 14, product: prodDinner, mealType: MealType.DINNER, date: yesterdayDate, status: CouponStatus.REDEEMED, shortCode: "DIN-1092", redeemedMinutesAgo: 1440 + 30 },
-    { studentIdx: 15, product: prodLunch, mealType: MealType.LUNCH, date: twoDaysAgoDate, status: CouponStatus.REDEEMED, shortCode: "LUN-1081", redeemedMinutesAgo: 2880 + 100 },
-    { studentIdx: 16, product: prodDinner, mealType: MealType.DINNER, date: twoDaysAgoDate, status: CouponStatus.REDEEMED, shortCode: "DIN-1082", redeemedMinutesAgo: 2880 + 50 },
+    { studentIdx: 13, product: prodLunch, mealType: MealType.LUNCH, date: yesterdayDate, status: CouponStatus.REDEEMED, shortCode: "TRAY1091", redeemedMinutesAgo: 1440 + 120 },
+    { studentIdx: 14, product: prodDinner, mealType: MealType.DINNER, date: yesterdayDate, status: CouponStatus.REDEEMED, shortCode: "EVEN1092", redeemedMinutesAgo: 1440 + 30 },
+    { studentIdx: 15, product: prodLunch, mealType: MealType.LUNCH, date: twoDaysAgoDate, status: CouponStatus.REDEEMED, shortCode: "TRAY1081", redeemedMinutesAgo: 2880 + 100 },
+    { studentIdx: 16, product: prodDinner, mealType: MealType.DINNER, date: twoDaysAgoDate, status: CouponStatus.REDEEMED, shortCode: "EVEN1082", redeemedMinutesAgo: 2880 + 50 },
 
     // Past Days: EXPIRED & REVOKED
-    { studentIdx: 17, product: prodBreakfast, mealType: MealType.BREAKFAST, date: twoDaysAgoDate, status: CouponStatus.EXPIRED, shortCode: "BFK-1071" },
-    { studentIdx: 18, product: prodLunch, mealType: MealType.LUNCH, date: twoDaysAgoDate, status: CouponStatus.EXPIRED, shortCode: "LUN-1072" },
-    { studentIdx: 19, product: prodDinner, mealType: MealType.DINNER, date: yesterdayDate, status: CouponStatus.REVOKED, shortCode: "DIN-9991", revokedReason: "Order cancelled by student" },
-    { studentIdx: 20, product: prodLunch, mealType: MealType.LUNCH, date: yesterdayDate, status: CouponStatus.REVOKED, shortCode: "LUN-9992", revokedReason: "Duplicate transaction refund" },
+    { studentIdx: 17, product: prodBreakfast, mealType: MealType.BREAKFAST, date: twoDaysAgoDate, status: CouponStatus.EXPIRED, shortCode: "BREK1071" },
+    { studentIdx: 18, product: prodLunch, mealType: MealType.LUNCH, date: twoDaysAgoDate, status: CouponStatus.EXPIRED, shortCode: "TRAY1072" },
+    { studentIdx: 19, product: prodDinner, mealType: MealType.DINNER, date: yesterdayDate, status: CouponStatus.REVOKED, shortCode: "EVEN9991", revokedReason: "Order cancelled by student" },
+    { studentIdx: 20, product: prodLunch, mealType: MealType.LUNCH, date: yesterdayDate, status: CouponStatus.REVOKED, shortCode: "TRAY9992", revokedReason: "Duplicate transaction refund" },
   ];
 
   let couponsCreated = 0;
@@ -636,7 +647,7 @@ async function main(): Promise<void> {
     const luckyStudents = studentsList.slice(0, 6);
     for (let i = 0; i < luckyStudents.length; i++) {
       const st = luckyStudents[i];
-      const code = `GIFT-SP${i + 1}`;
+      const code = `GFTSP00${i + 1}`;
       const rawToken = generateToken(16);
       const isRedeemed = i < 3;
       const redeemedAt = isRedeemed ? new Date(Date.now() - (60 + i * 20) * 60 * 1000) : null;
@@ -697,7 +708,7 @@ async function main(): Promise<void> {
     const welfareStudents = studentsList.slice(6, 14);
     for (let i = 0; i < welfareStudents.length; i++) {
       const st = welfareStudents[i];
-      const code = `GIFT-DW${i + 1}`;
+      const code = `GFTDW00${i + 1}`;
       const rawToken = generateToken(16);
 
       const giftCoupon = await prisma.coupon.create({
@@ -1022,7 +1033,7 @@ async function main(): Promise<void> {
     { action: "REIMBURSEMENT_PAYMENT_RECORDED", entityType: "ReimbursementPayment", entityId: "PAY-UPI-001", after: { method: "UPI", amountPaise: 104800 } },
     { action: "GIFT_BATCH_ISSUED", entityType: "GiftBatch", entityId: "BATCH-SPORTS", after: { totalStudents: 6, mealType: "SPECIAL_DINNER" } },
     { action: "STUDENT_ROSTER_IMPORTED", entityType: "Student", entityId: "ROSTER-2026", after: { importedCount: 24, mess: "AKSHAYA" } },
-    { action: "COUPON_REDEEMED", entityType: "Coupon", entityId: "LUN-5011", after: { mealType: "LUNCH", studentRoll: "2024CS004" } },
+    { action: "COUPON_REDEEMED", entityType: "Coupon", entityId: "TRAY5011", after: { mealType: "LUNCH", studentRoll: "2024CS004" } },
   ];
 
   for (let i = 0; i < auditEntries.length; i++) {
@@ -1047,7 +1058,7 @@ async function main(): Promise<void> {
   console.log("==================================================");
   console.log("Super Admin Login: admin@campus.edu / SuperAdminPassword123!");
   console.log("Mess Staff Login:  staff@campus.edu / StaffPassword123!");
-  console.log("Quick Redeem Short Codes: LUN-8421, LUN-9923, DIN-7741, SPL-1001");
+  console.log("Quick Redeem Short Codes: TRAY8421, TRAY9923, EVEN7741, SPEC1001");
   console.log("==================================================");
 }
 

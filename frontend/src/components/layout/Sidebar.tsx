@@ -44,9 +44,9 @@ const NAV_ITEMS: NavItem[] = [
   },
   { to: "/gifts", label: "Gifts", icon: Gift, permission: "gift:view" },
   { to: "/students", label: "Student Roster", icon: Users, permission: "student:view" },
-  { to: "/users", label: "Admin & Staff", icon: ShieldCheck, roleRequired: "SUPER_ADMIN" },
-  { to: "/audit", label: "Audit Log", icon: History, roleRequired: "SUPER_ADMIN" },
-  { to: "/settings", label: "Settings", icon: Settings, roleRequired: "SUPER_ADMIN" },
+  { to: "/users", label: "Admin & Staff", icon: ShieldCheck, permission: "user:manage" },
+  { to: "/audit", label: "Audit Log", icon: History, permission: "audit:view" },
+  { to: "/settings", label: "Settings", icon: Settings, permission: "settings:manage" },
 ];
 
 export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onMobileClose }) => {

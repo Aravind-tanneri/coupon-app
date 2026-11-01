@@ -1,9 +1,37 @@
 import { Request, Response } from "express";
+import { prisma } from "../../lib/prisma.js";
 import { menuService } from "./menu.service.js";
 import { MenuQuerySchema, UpsertMealSlotSchema, CopyWeekMenuSchema } from "./menu.schemas.js";
 import { BadRequestError, UnauthorizedError } from "../../lib/errors.js";
 
 export class MenuController {
+  private async resolveMessId(
+    requestedMessId?: string,
+    userMessId?: string | null,
+  ): Promise<string> {
+    const candidate = requestedMessId || userMessId;
+    if (candidate && candidate !== "default") {
+      const mess = await prisma.mess.findFirst({
+        where: {
+          OR: [{ id: candidate }, { code: candidate }],
+        },
+      });
+      if (mess) return mess.id;
+      return candidate;
+    }
+
+    const defaultMess = await prisma.mess.findFirst({
+      where: { active: true },
+      orderBy: { createdAt: "asc" },
+    });
+
+    if (defaultMess) {
+      return defaultMess.id;
+    }
+
+    throw new BadRequestError("messId is required");
+  }
+
   async getMenuRange(req: Request, res: Response) {
     if (!req.adminUser) {
       throw new UnauthorizedError();
@@ -16,11 +44,9 @@ export class MenuController {
       targetMessId = req.adminUser.messId;
     }
 
-    if (!targetMessId) {
-      throw new BadRequestError("messId is required");
-    }
+    const resolvedMessId = await this.resolveMessId(targetMessId, req.adminUser.messId);
 
-    const result = await menuService.getMenuRange(targetMessId, query.startDate, query.endDate);
+    const result = await menuService.getMenuRange(resolvedMessId, query.startDate, query.endDate);
 
     res.status(200).json({
       success: true,
@@ -38,11 +64,9 @@ export class MenuController {
       targetMessId = req.adminUser.messId;
     }
 
-    if (!targetMessId) {
-      throw new BadRequestError("messId is required");
-    }
+    const resolvedMessId = await this.resolveMessId(targetMessId, req.adminUser.messId);
 
-    const result = await menuService.getTodayMenu(targetMessId);
+    const result = await menuService.getTodayMenu(resolvedMessId);
 
     res.status(200).json({
       success: true,
@@ -56,6 +80,8 @@ export class MenuController {
     }
 
     const input = UpsertMealSlotSchema.parse(req.body);
+    const resolvedMessId = await this.resolveMessId(input.messId, req.adminUser.messId);
+    input.messId = resolvedMessId;
 
     if (
       req.adminUser.role !== "SUPER_ADMIN" &&
@@ -79,6 +105,8 @@ export class MenuController {
     }
 
     const input = CopyWeekMenuSchema.parse(req.body);
+    const resolvedMessId = await this.resolveMessId(input.messId, req.adminUser.messId);
+    input.messId = resolvedMessId;
 
     if (
       req.adminUser.role !== "SUPER_ADMIN" &&

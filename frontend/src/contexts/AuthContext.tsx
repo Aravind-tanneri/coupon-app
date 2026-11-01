@@ -82,6 +82,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     (permission: string): boolean => {
       if (!user) return false;
       if (user.role === "SUPER_ADMIN") return true;
+      if (
+        user.role === "ADMIN" &&
+        (permission === "user:manage" ||
+          permission === "settings:manage" ||
+          permission === "audit:view")
+      ) {
+        return true;
+      }
       return Array.isArray(user.permissions) ? user.permissions.includes(permission) : false;
     },
     [user],

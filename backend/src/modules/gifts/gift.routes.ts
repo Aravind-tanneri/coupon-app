@@ -23,6 +23,20 @@ giftRouter.get("/", requirePermission("gift:view"), (req, res, next) => {
   giftController.listBatches(req, res).catch(next);
 });
 
+// Alias for /batches as documented in API reference
+giftRouter.get("/batches", requirePermission("gift:view"), (req, res, next) => {
+  giftController.listBatches(req, res).catch(next);
+});
+
+giftRouter.post(
+  "/batches",
+  requirePermission("gift:issue"),
+  idempotency({ required: false }),
+  (req, res, next) => {
+    giftController.issueBatch(req, res).catch(next);
+  },
+);
+
 giftRouter.get("/:id", requirePermission("gift:view"), (req, res, next) => {
   giftController.getBatchDetails(req, res).catch(next);
 });

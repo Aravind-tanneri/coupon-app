@@ -32,7 +32,14 @@ export class ApiClientError extends Error {
 function getApiBase(): string {
   const raw = import.meta.env.VITE_API_URL;
   if (!raw) return "/api/v1";
-  const trimmed = raw.replace(/\/+$/, "");
+  let trimmed = raw.trim().replace(/\/+$/, "");
+  if (!trimmed) return "/api/v1";
+
+  // Ensure leading slash if relative path to avoid resolving against nested routes
+  if (!/^https?:\/\//i.test(trimmed) && !trimmed.startsWith("/")) {
+    trimmed = `/${trimmed}`;
+  }
+
   return trimmed.endsWith("/api/v1") ? trimmed : `${trimmed}/api/v1`;
 }
 
@@ -136,37 +143,70 @@ export async function apiRequest<T>(endpoint: string, options: RequestOptions = 
 }
 
 export const api = {
-  get: <T>(endpoint: string, params?: RequestOptions["params"]) =>
-    apiRequest<T>(endpoint, { method: "GET", params }),
+  get: <T>(
+    endpoint: string,
+    params?: RequestOptions["params"],
+    options?: Omit<RequestOptions, "params" | "method">,
+  ) => apiRequest<T>(endpoint, { method: "GET", params, ...options }),
 
-  post: <T>(endpoint: string, body?: unknown, params?: RequestOptions["params"]) =>
+  post: <T>(
+    endpoint: string,
+    body?: unknown,
+    params?: RequestOptions["params"],
+    options?: Omit<RequestOptions, "params" | "body" | "method">,
+  ) =>
     apiRequest<T>(endpoint, {
       method: "POST",
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      body:
+        body !== undefined ? (body instanceof FormData ? body : JSON.stringify(body)) : undefined,
       params,
+      ...options,
     }),
 
-  put: <T>(endpoint: string, body?: unknown, params?: RequestOptions["params"]) =>
+  put: <T>(
+    endpoint: string,
+    body?: unknown,
+    params?: RequestOptions["params"],
+    options?: Omit<RequestOptions, "params" | "body" | "method">,
+  ) =>
     apiRequest<T>(endpoint, {
       method: "PUT",
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      body:
+        body !== undefined ? (body instanceof FormData ? body : JSON.stringify(body)) : undefined,
       params,
+      ...options,
     }),
 
-  patch: <T>(endpoint: string, body?: unknown, params?: RequestOptions["params"]) =>
+  patch: <T>(
+    endpoint: string,
+    body?: unknown,
+    params?: RequestOptions["params"],
+    options?: Omit<RequestOptions, "params" | "body" | "method">,
+  ) =>
     apiRequest<T>(endpoint, {
       method: "PATCH",
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      body:
+        body !== undefined ? (body instanceof FormData ? body : JSON.stringify(body)) : undefined,
       params,
+      ...options,
     }),
 
-  delete: <T>(endpoint: string, params?: RequestOptions["params"]) =>
-    apiRequest<T>(endpoint, { method: "DELETE", params }),
+  delete: <T>(
+    endpoint: string,
+    params?: RequestOptions["params"],
+    options?: Omit<RequestOptions, "params" | "method">,
+  ) => apiRequest<T>(endpoint, { method: "DELETE", params, ...options }),
 
-  upload: <T>(endpoint: string, formData: FormData, params?: RequestOptions["params"]) =>
+  upload: <T>(
+    endpoint: string,
+    formData: FormData,
+    params?: RequestOptions["params"],
+    options?: Omit<RequestOptions, "params" | "body" | "method">,
+  ) =>
     apiRequest<T>(endpoint, {
       method: "POST",
       body: formData,
       params,
+      ...options,
     }),
 };

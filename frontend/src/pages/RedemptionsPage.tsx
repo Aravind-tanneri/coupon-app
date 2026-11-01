@@ -288,6 +288,25 @@ export const RedemptionsPage: React.FC = () => {
     }
   };
 
+  // Auto-fill and lookup if ?code= is provided in URL
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const codeParam = params.get("code");
+      if (codeParam) {
+        const sanitized = codeParam
+          .toUpperCase()
+          .replace(/[^0-9A-Z]/g, "")
+          .replace(/[ILOU]/g, "")
+          .slice(0, 8);
+        if (sanitized) {
+          setManualCode(sanitized);
+          performLookup(sanitized, false);
+        }
+      }
+    }
+  }, []);
+
   // Confirm and Consume Redemption
   const handleConfirmRedeem = async () => {
     if (!lookupResult?.coupon) return;
@@ -686,6 +705,53 @@ export const RedemptionsPage: React.FC = () => {
                     Enter the student's 8-character code or scan with a USB barcode gun. Ambiguous
                     characters (I, L, O, U) are automatically sanitized.
                   </p>
+
+                  {/* Quick Demo Fill Buttons */}
+                  <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-slate-100">
+                    <span className="text-xs font-semibold text-slate-500 flex items-center gap-1">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-500" /> Demo Codes:
+                    </span>
+                    {[
+                      {
+                        code: "TRAY8421",
+                        label: "Lunch #1",
+                        color:
+                          "text-emerald-700 bg-emerald-50 border-emerald-200 hover:bg-emerald-100",
+                      },
+                      {
+                        code: "TRAY9923",
+                        label: "Lunch #2",
+                        color:
+                          "text-emerald-700 bg-emerald-50 border-emerald-200 hover:bg-emerald-100",
+                      },
+                      {
+                        code: "EVEN7741",
+                        label: "Dinner",
+                        color: "text-sky-700 bg-sky-50 border-sky-200 hover:bg-sky-100",
+                      },
+                      {
+                        code: "SPEC1001",
+                        label: "Special",
+                        color: "text-purple-700 bg-purple-50 border-purple-200 hover:bg-purple-100",
+                      },
+                    ].map((d) => (
+                      <button
+                        key={d.code}
+                        type="button"
+                        onClick={() => {
+                          setManualCode(d.code);
+                          performLookup(d.code, false);
+                        }}
+                        className={`px-2.5 py-1 text-xs font-mono font-bold rounded-lg border transition-all ${d.color} shadow-sm`}
+                        title={`Auto-fill and verify ${d.code} (${d.label})`}
+                      >
+                        {d.code}{" "}
+                        <span className="text-[10px] font-sans opacity-70 font-normal">
+                          ({d.label})
+                        </span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>

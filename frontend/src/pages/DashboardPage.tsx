@@ -294,18 +294,34 @@ export const DashboardPage: React.FC = () => {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2 font-mono text-xs">
-            <span className="px-2.5 py-1 bg-slate-800 border border-slate-700 rounded text-emerald-400 font-bold select-all">
-              LUN-8421
-            </span>
-            <span className="px-2.5 py-1 bg-slate-800 border border-slate-700 rounded text-emerald-400 font-bold select-all">
-              LUN-9923
-            </span>
-            <span className="px-2.5 py-1 bg-slate-800 border border-slate-700 rounded text-sky-400 font-bold select-all">
-              DIN-7741
-            </span>
-            <span className="px-2.5 py-1 bg-slate-800 border border-slate-700 rounded text-purple-400 font-bold select-all">
-              SPL-1001
-            </span>
+            <Link
+              to="/redemptions?code=TRAY8421"
+              title="Click to open scanner with TRAY8421 (Lunch #1)"
+              className="px-2.5 py-1 bg-slate-800 hover:bg-emerald-950/80 border border-slate-700 hover:border-emerald-500 rounded text-emerald-400 font-bold transition-all"
+            >
+              TRAY8421
+            </Link>
+            <Link
+              to="/redemptions?code=TRAY9923"
+              title="Click to open scanner with TRAY9923 (Lunch #2)"
+              className="px-2.5 py-1 bg-slate-800 hover:bg-emerald-950/80 border border-slate-700 hover:border-emerald-500 rounded text-emerald-400 font-bold transition-all"
+            >
+              TRAY9923
+            </Link>
+            <Link
+              to="/redemptions?code=EVEN7741"
+              title="Click to open scanner with EVEN7741 (Dinner)"
+              className="px-2.5 py-1 bg-slate-800 hover:bg-sky-950/80 border border-slate-700 hover:border-sky-500 rounded text-sky-400 font-bold transition-all"
+            >
+              EVEN7741
+            </Link>
+            <Link
+              to="/redemptions?code=SPEC1001"
+              title="Click to open scanner with SPEC1001 (Special Dinner)"
+              className="px-2.5 py-1 bg-slate-800 hover:bg-purple-950/80 border border-slate-700 hover:border-purple-500 rounded text-purple-400 font-bold transition-all"
+            >
+              SPEC1001
+            </Link>
             <Link
               to="/redemptions"
               className="ml-2 inline-flex items-center gap-1 px-3 py-1 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-sans font-semibold rounded text-xs transition-colors"

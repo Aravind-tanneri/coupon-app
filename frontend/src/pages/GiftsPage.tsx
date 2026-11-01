@@ -283,11 +283,12 @@ export const GiftsPage: React.FC = () => {
           studentIds: Array.from(selectedStudentIds),
           idempotencyKey,
         },
+        undefined,
         {
           headers: {
             "Idempotency-Key": idempotencyKey,
           },
-        } as never,
+        },
       );
 
       setIsIssueModalOpen(false);
