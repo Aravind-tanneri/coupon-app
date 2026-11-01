@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction, ErrorRequestHandler } from "express";
+import { ZodError } from "zod";
 import { AppError } from "../lib/errors.js";
 import { logger } from "../config/logger.js";
 import { env } from "../config/env.js";
@@ -43,6 +44,34 @@ export const errorHandler: ErrorRequestHandler = (
     };
 
     res.status(err.statusCode).json(envelope);
+    return;
+  }
+
+  if (err instanceof ZodError) {
+    const errorMessages = err.issues
+      .map((i) => `${i.path.join(".") || "field"}: ${i.message}`)
+      .join(", ");
+    logger.warn(
+      {
+        err,
+        issues: err.issues,
+        requestId,
+        path: req.path,
+        method: req.method,
+      },
+      `ZodError: ${errorMessages}`,
+    );
+
+    const envelope: ErrorEnvelope = {
+      error: {
+        code: "VALIDATION_ERROR",
+        message: errorMessages || "Request validation failed",
+        details: err.issues,
+        requestId,
+      },
+    };
+
+    res.status(400).json(envelope);
     return;
   }
 

@@ -43,11 +43,14 @@ function getMondayOfCurrentWeek(d = new Date()): Date {
 }
 
 function formatDateToIso(d: Date): string {
-  return d.toISOString().split("T")[0]!;
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 export const MenusPage: React.FC = () => {
-  const { user, can } = useAuth();
+  const { user, loading: authLoading, can } = useAuth();
   const toast = useToast();
 
   const [currentMonday, setCurrentMonday] = useState<Date>(() => getMondayOfCurrentWeek());
@@ -84,6 +87,7 @@ export const MenusPage: React.FC = () => {
   const endDateStr = weekDays[6]!.iso;
 
   const fetchWeekMenus = useCallback(async () => {
+    if (authLoading) return;
     setLoading(true);
     try {
       const data = await api.get<MenuSlot[]>("/menus", {
@@ -99,7 +103,7 @@ export const MenusPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [startDateStr, endDateStr, user?.messId, toast]);
+  }, [authLoading, startDateStr, endDateStr, user?.messId, toast]);
 
   useEffect(() => {
     fetchWeekMenus();

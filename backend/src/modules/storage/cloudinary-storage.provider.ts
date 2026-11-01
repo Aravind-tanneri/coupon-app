@@ -17,9 +17,16 @@ export class CloudinaryStorageAdapter implements StorageProvider {
     apiSecret?: string;
     folder?: string;
   }) {
-    const cloud_name = options?.cloudName || env.CLOUDINARY_CLOUD_NAME || env.CLOUD_NAME;
-    const api_key = options?.apiKey || env.CLOUDINARY_API_KEY || env.API_KEY;
-    const api_secret = options?.apiSecret || env.CLOUDINARY_API_SECRET || env.API_SECRET;
+    const cloud_name =
+      options?.cloudName !== undefined
+        ? options.cloudName
+        : env.CLOUDINARY_CLOUD_NAME || env.CLOUD_NAME;
+    const api_key =
+      options?.apiKey !== undefined ? options.apiKey : env.CLOUDINARY_API_KEY || env.API_KEY;
+    const api_secret =
+      options?.apiSecret !== undefined
+        ? options.apiSecret
+        : env.CLOUDINARY_API_SECRET || env.API_SECRET;
     this.folder = options?.folder || env.CLOUDINARY_FOLDER || env.FOLDER_NAME || "coupon-app";
 
     this.isConfigured = Boolean(cloud_name && api_key && api_secret);

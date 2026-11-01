@@ -154,14 +154,11 @@ export class NodemailerEmailAdapter implements EmailProvider {
     const host = options?.host || env.MAIL_HOST || env.SMTP_HOST || "smtp.gmail.com";
     const port = options?.port || env.MAIL_PORT || env.SMTP_PORT || 587;
     const secure = options?.secure ?? (port === 465 || env.SMTP_SECURE === true);
-    const user = options?.user || env.MAIL_USER || env.SMTP_USER || "";
+    const user = options?.user !== undefined ? options.user : env.MAIL_USER || env.SMTP_USER || "";
     const pass =
-      options?.pass ||
-      env.MAIL_PASS ||
-      env.MAIL_PASSWORD ||
-      env.SMTP_PASS ||
-      env.SMTP_PASSWORD ||
-      "";
+      options?.pass !== undefined
+        ? options.pass
+        : env.MAIL_PASS || env.MAIL_PASSWORD || env.SMTP_PASS || env.SMTP_PASSWORD || "";
 
     // For services like Gmail SMTP, default from header to the authenticated user if EMAIL_FROM is default
     const configuredFrom = options?.fromEmail || env.SMTP_FROM;

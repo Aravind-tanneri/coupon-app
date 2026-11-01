@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import crypto from "crypto";
+import { env } from "../../config/env.js";
 import { whatsAppService } from "./whatsapp.service.js";
 import { FakeWhatsAppProvider } from "./fake-whatsapp.provider.js";
 import { prisma } from "../../lib/prisma.js";
@@ -196,7 +197,7 @@ describe("Phase 11: WhatsApp Module", () => {
     it("verifies GET handshake with valid mode and verify token", () => {
       const challenge = whatsAppService.verifyHandshake(
         "subscribe",
-        "test_webhook_verify_token",
+        env.WHATSAPP_WEBHOOK_VERIFY_TOKEN || "test_webhook_verify_token",
         "CHALLENGE_STRING_456",
       );
       expect(challenge).toBe("CHALLENGE_STRING_456");
@@ -208,12 +209,16 @@ describe("Phase 11: WhatsApp Module", () => {
       }).toThrow(ForbiddenError);
 
       expect(() => {
-        whatsAppService.verifyHandshake("publish", "test_webhook_verify_token", "CHALLENGE_456");
+        whatsAppService.verifyHandshake(
+          "publish",
+          env.WHATSAPP_WEBHOOK_VERIFY_TOKEN || "test_webhook_verify_token",
+          "CHALLENGE_456",
+        );
       }).toThrow(ForbiddenError);
     });
 
     it("verifies HMAC-SHA256 signature on POST body", () => {
-      const appSecret = "test_whatsapp_app_secret";
+      const appSecret = env.WHATSAPP_APP_SECRET || "test_whatsapp_app_secret";
 
       const rawBody = Buffer.from(JSON.stringify({ object: "whatsapp_business_account" }));
       const validHmac = crypto.createHmac("sha256", appSecret).update(rawBody).digest("hex");
