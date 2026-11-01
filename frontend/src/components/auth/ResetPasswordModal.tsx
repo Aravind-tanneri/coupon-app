@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   X,
   KeyRound,
@@ -7,6 +7,7 @@ import {
   AlertCircle,
   ArrowRight,
   ShieldCheck,
+  RefreshCw,
 } from "lucide-react";
 import { api, ApiClientError } from "../../lib/api";
 
@@ -33,12 +34,28 @@ export const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [demoCode, setDemoCode] = useState("MESS-8492");
+  const [countdown, setCountdown] = useState(30);
+  const [resending, setResending] = useState(false);
+  const [resendStatus, setResendStatus] = useState<string | null>(null);
+
+  useEffect(() => {
+    let timer: ReturnType<typeof setInterval> | undefined;
+    if (step === "VERIFY" && countdown > 0) {
+      timer = setInterval(() => {
+        setCountdown((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [step, countdown]);
 
   if (!isOpen) return null;
 
   const handleSendToken = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setResendStatus(null);
     if (!email || !email.includes("@")) {
       setError("Please enter a valid administrator email address.");
       return;
@@ -56,7 +73,29 @@ export const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({
       setDemoCode("MESS-8492");
     } finally {
       setLoading(false);
+      setCountdown(30);
       setStep("VERIFY");
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (countdown > 0 || resending) return;
+    setResending(true);
+    setError(null);
+    setResendStatus(null);
+    try {
+      const res = await api.post<{ demoToken?: string }>("/auth/resend-otp", { email });
+      if (res.demoToken) {
+        setDemoCode(res.demoToken);
+      }
+      setResendStatus("A new verification code has been dispatched to your email.");
+      setCountdown(30);
+    } catch (err) {
+      const msg =
+        err instanceof ApiClientError ? err.message : "Failed to resend code. Please try again.";
+      setError(msg);
+    } finally {
+      setResending(false);
     }
   };
 
@@ -217,10 +256,34 @@ export const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({
               </button>
             </div>
 
+            {resendStatus && (
+              <div className="p-2.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>{resendStatus}</span>
+              </div>
+            )}
+
             <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                Verification Code
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                  Verification Code
+                </label>
+                <button
+                  type="button"
+                  onClick={handleResendOtp}
+                  disabled={countdown > 0 || resending}
+                  className="text-xs font-medium text-emerald-600 hover:text-emerald-700 disabled:text-slate-400 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
+                >
+                  <RefreshCw className={`w-3 h-3 ${resending ? "animate-spin" : ""}`} />
+                  {resending ? (
+                    <span>Sending...</span>
+                  ) : countdown > 0 ? (
+                    <span>Resend OTP ({countdown}s)</span>
+                  ) : (
+                    <span>Resend OTP</span>
+                  )}
+                </button>
+              </div>
               <input
                 type="text"
                 required

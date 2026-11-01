@@ -1,25 +1,15 @@
 import React, { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import toast from "react-hot-toast";
 import { useAuth } from "../contexts/AuthContext";
 import { ApiClientError } from "../lib/api";
-import {
-  Utensils,
-  Lock,
-  Mail,
-  AlertCircle,
-  Sparkles,
-  CheckCircle2,
-  ShieldCheck,
-  QrCode,
-} from "lucide-react";
+import { Utensils, Lock, Mail, Sparkles, ShieldCheck, QrCode } from "lucide-react";
 import { ResetPasswordModal } from "../components/auth/ResetPasswordModal";
 import gdscLogo from "../assets/gdsc-logo.jpg";
 
 export const LoginPage: React.FC = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
 
@@ -33,8 +23,6 @@ export const LoginPage: React.FC = () => {
     overridePass?: string,
   ) => {
     if (e) e.preventDefault();
-    setError(null);
-    setSuccessMessage(null);
     setLoading(true);
 
     const loginEmail = overrideEmail ?? email;
@@ -42,13 +30,14 @@ export const LoginPage: React.FC = () => {
 
     try {
       await login(loginEmail, loginPass);
+      toast.success("Signed in successfully!");
       const redirect = searchParams.get("redirect") || "/";
       navigate(redirect, { replace: true });
     } catch (err) {
       if (err instanceof ApiClientError) {
-        setError(err.message);
+        toast.error(err.message);
       } else {
-        setError("An unexpected error occurred. Please try again.");
+        toast.error("An unexpected error occurred. Please try again.");
       }
     } finally {
       setLoading(false);
@@ -58,8 +47,7 @@ export const LoginPage: React.FC = () => {
   const handleFillCredentials = (demoEmail: string, demoPassword: string) => {
     setEmail(demoEmail);
     setPassword(demoPassword);
-    setError(null);
-    setSuccessMessage(`Credentials for ${demoEmail} populated in the form.`);
+    toast.success(`Credentials populated for ${demoEmail}`);
   };
 
   const handlePasswordResetSuccess = ({
@@ -71,10 +59,7 @@ export const LoginPage: React.FC = () => {
   }) => {
     setEmail(resetEmail);
     setPassword(resetPassword);
-    setError(null);
-    setSuccessMessage(
-      "Password reset successful! You can now sign in with your updated credentials.",
-    );
+    toast.success("Password reset successful! You can now sign in.");
   };
 
   return (
@@ -91,22 +76,6 @@ export const LoginPage: React.FC = () => {
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow-sm border border-slate-200 sm:rounded-xl sm:px-10">
-          {/* Error Banner */}
-          {error && (
-            <div className="mb-6 p-4 rounded-lg bg-rose-50 border border-rose-200 flex items-start gap-3 text-rose-800 text-sm">
-              <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
-              <div className="flex-1">{error}</div>
-            </div>
-          )}
-
-          {/* Success Banner */}
-          {successMessage && (
-            <div className="mb-6 p-4 rounded-lg bg-emerald-50 border border-emerald-200 flex items-start gap-3 text-emerald-800 text-sm">
-              <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
-              <div className="flex-1">{successMessage}</div>
-            </div>
-          )}
-
           <form onSubmit={(e) => handleSubmit(e)} className="space-y-5">
             <div>
               <label
@@ -192,6 +161,33 @@ export const LoginPage: React.FC = () => {
             </div>
 
             <div className="space-y-2.5">
+              {/* Primary Demo Card: Aravind Tanneri */}
+              <button
+                type="button"
+                onClick={() =>
+                  handleFillCredentials("tanneriaravind2007@gmail.com", "SuperAdminPassword123!")
+                }
+                className="w-full text-left p-3 bg-emerald-50/70 hover:bg-emerald-100/70 rounded-xl border border-emerald-300 transition-all flex items-center justify-between group cursor-pointer"
+                title="Click to populate credentials for tanneriaravind2007@gmail.com"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0">
+                    <ShieldCheck className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-semibold text-emerald-950 group-hover:text-emerald-900">
+                      Super Admin (Demo)
+                    </div>
+                    <div className="text-[11px] text-emerald-700 font-mono">
+                      tanneriaravind2007@gmail.com
+                    </div>
+                  </div>
+                </div>
+                <span className="text-[11px] font-semibold text-emerald-700 group-hover:text-emerald-900">
+                  Auto-fill &rarr;
+                </span>
+              </button>
+
               {/* Super Admin Preset Card */}
               <button
                 type="button"
@@ -200,7 +196,7 @@ export const LoginPage: React.FC = () => {
                 title="Click to populate Super Admin credentials"
               >
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                  <div className="w-8 h-8 rounded-lg bg-slate-200 text-slate-700 flex items-center justify-center shrink-0">
                     <ShieldCheck className="w-4 h-4" />
                   </div>
                   <div>
@@ -254,7 +250,7 @@ export const LoginPage: React.FC = () => {
       <ResetPasswordModal
         isOpen={isResetModalOpen}
         onClose={() => setIsResetModalOpen(false)}
-        initialEmail={email || "admin@campus.edu"}
+        initialEmail={email || "tanneriaravind2007@gmail.com"}
         onSuccess={handlePasswordResetSuccess}
       />
     </div>

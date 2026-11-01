@@ -34,7 +34,10 @@ export class MenuService {
     return menus.map((m) => ({
       id: m.id,
       messId: m.messId,
-      date: m.date.toISOString().split("T")[0]!,
+      date:
+        m.date instanceof Date && !isNaN(m.date.getTime())
+          ? m.date.toISOString().split("T")[0]!
+          : String(m.date).split("T")[0]!,
       mealType: m.mealType,
       notes: m.notes,
       items: m.items.map((item) => ({

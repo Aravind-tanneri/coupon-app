@@ -104,10 +104,12 @@ export async function forgotPasswordHandler(
       throw new ValidationError("Valid email address is required");
     }
 
+    const { demoToken } = await authService.requestPasswordReset(email);
+
     res.status(200).json({
       success: true,
       message: "Password reset instructions dispatched.",
-      demoToken: "MESS-8492",
+      demoToken,
     });
   } catch (error) {
     next(error);

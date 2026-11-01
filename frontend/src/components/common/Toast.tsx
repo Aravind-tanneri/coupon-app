@@ -1,10 +1,10 @@
-import React, { createContext, useContext, useState, useCallback } from "react";
-import { CheckCircle2, AlertCircle, Info, X } from "lucide-react";
+import React, { createContext, useContext, useCallback, useMemo } from "react";
+import hotToast, { Toaster } from "react-hot-toast";
 
 export type ToastType = "success" | "error" | "info";
 
 export interface ToastItem {
-  id: string;
+  id?: string;
   type: ToastType;
   title: string;
   message?: string;
@@ -12,7 +12,7 @@ export interface ToastItem {
 }
 
 interface ToastContextType {
-  toast: (options: Omit<ToastItem, "id">) => void;
+  toast: (options: ToastItem) => void;
   success: (title: string, message?: string) => void;
   error: (title: string, message?: string) => void;
   info: (title: string, message?: string) => void;
@@ -21,27 +21,16 @@ interface ToastContextType {
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
 
 export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [toasts, setToasts] = useState<ToastItem[]>([]);
-
-  const removeToast = useCallback((id: string) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id));
+  const addToast = useCallback((options: ToastItem) => {
+    const text = options.message ? `${options.title}\n${options.message}` : options.title;
+    if (options.type === "success") {
+      hotToast.success(text, { duration: options.duration ?? 3500 });
+    } else if (options.type === "error") {
+      hotToast.error(text, { duration: options.duration ?? 4500 });
+    } else {
+      hotToast(text, { duration: options.duration ?? 3500, icon: "ℹ️" });
+    }
   }, []);
-
-  const addToast = useCallback(
-    (options: Omit<ToastItem, "id">) => {
-      const id = Math.random().toString(36).substring(2, 9);
-      const newToast: ToastItem = { ...options, id };
-      setToasts((prev) => [...prev, newToast]);
-
-      const duration = options.duration ?? 4000;
-      if (duration > 0) {
-        setTimeout(() => {
-          removeToast(id);
-        }, duration);
-      }
-    },
-    [removeToast],
-  );
 
   const success = useCallback(
     (title: string, message?: string) => addToast({ type: "success", title, message }),
@@ -50,7 +39,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const error = useCallback(
     (title: string, message?: string) =>
-      addToast({ type: "error", title, message, duration: 6000 }),
+      addToast({ type: "error", title, message, duration: 5000 }),
     [addToast],
   );
 
@@ -59,43 +48,41 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     [addToast],
   );
 
-  return (
-    <ToastContext.Provider value={{ toast: addToast, success, error, info }}>
-      {children}
-      {/* Toast container */}
-      <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none">
-        {toasts.map((t) => {
-          const isSuccess = t.type === "success";
-          const isError = t.type === "error";
+  const contextValue = useMemo(
+    () => ({ toast: addToast, success, error, info }),
+    [addToast, success, error, info],
+  );
 
-          return (
-            <div
-              key={t.id}
-              className={`pointer-events-auto flex items-start gap-3 p-4 rounded-xl border shadow-lg bg-white transition-all animate-in slide-in-from-bottom-5 duration-200 ${
-                isSuccess ? "border-emerald-200" : isError ? "border-rose-200" : "border-slate-200"
-              }`}
-            >
-              <div className="shrink-0 mt-0.5">
-                {isSuccess && <CheckCircle2 className="w-5 h-5 text-emerald-600" />}
-                {isError && <AlertCircle className="w-5 h-5 text-rose-600" />}
-                {!isSuccess && !isError && <Info className="w-5 h-5 text-sky-600" />}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-slate-900">{t.title}</p>
-                {t.message && (
-                  <p className="text-xs text-slate-500 mt-0.5 break-words">{t.message}</p>
-                )}
-              </div>
-              <button
-                onClick={() => removeToast(t.id)}
-                className="shrink-0 text-slate-400 hover:text-slate-600 p-0.5 rounded focus:outline-none"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          );
-        })}
-      </div>
+  return (
+    <ToastContext.Provider value={contextValue}>
+      {children}
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 3500,
+          style: {
+            background: "#ffffff",
+            color: "#1e293b",
+            fontSize: "13px",
+            fontWeight: 500,
+            borderRadius: "10px",
+            boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)",
+            border: "1px solid #e2e8f0",
+          },
+          success: {
+            iconTheme: {
+              primary: "#059669",
+              secondary: "#ecfdf5",
+            },
+          },
+          error: {
+            iconTheme: {
+              primary: "#e11d48",
+              secondary: "#fff1f2",
+            },
+          },
+        }}
+      />
     </ToastContext.Provider>
   );
 };

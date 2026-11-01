@@ -1,8 +1,20 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import toast from "react-hot-toast";
 import { LoginPage } from "./LoginPage";
 import { AuthProvider } from "../contexts/AuthContext";
+
+// Mock react-hot-toast
+vi.mock("react-hot-toast", () => {
+  return {
+    default: {
+      success: vi.fn(),
+      error: vi.fn(),
+    },
+    Toaster: () => null,
+  };
+});
 
 // Mock API
 vi.mock("../lib/api", () => {
@@ -96,7 +108,7 @@ describe("LoginPage Demo Login & Mock Password Reset Workflow", () => {
 
       expect(emailInput.value).toBe("admin@campus.edu");
       expect(passInput.value).toBe("SuperAdminPassword123!");
-      expect(screen.getByText(/credentials for admin@campus.edu populated/i)).toBeInTheDocument();
+      expect(toast.success).toHaveBeenCalledWith(expect.stringMatching(/admin@campus\.edu/i));
     });
 
     it("populates Counter Staff credentials into form when card is clicked", async () => {
@@ -112,7 +124,7 @@ describe("LoginPage Demo Login & Mock Password Reset Workflow", () => {
 
       expect(emailInput.value).toBe("staff@campus.edu");
       expect(passInput.value).toBe("StaffPassword123!");
-      expect(screen.getByText(/credentials for staff@campus.edu populated/i)).toBeInTheDocument();
+      expect(toast.success).toHaveBeenCalledWith(expect.stringMatching(/staff@campus\.edu/i));
     });
   });
 
@@ -189,13 +201,13 @@ describe("LoginPage Demo Login & Mock Password Reset Workflow", () => {
         fireEvent.click(returnBtn);
       });
 
-      // Form should now have the new password and success message
+      // Form should now have the new password and toast trigger
       await waitFor(() => {
         const passInput = screen.getByLabelText(/^password$/i) as HTMLInputElement;
         expect(passInput.value).toBe("NewSecurePassword123!");
-        expect(
-          screen.getByText(/password reset successful! you can now sign in/i),
-        ).toBeInTheDocument();
+        expect(toast.success).toHaveBeenCalledWith(
+          expect.stringMatching(/password reset successful/i),
+        );
       });
     });
   });

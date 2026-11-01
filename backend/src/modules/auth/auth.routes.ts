@@ -17,4 +17,5 @@ authRouter.post("/logout", logoutHandler);
 authRouter.get("/me", requireAuth, getMeHandler);
 authRouter.post("/change-password", requireAuth, changePasswordHandler);
 authRouter.post("/forgot-password", forgotPasswordHandler);
+authRouter.post("/resend-otp", forgotPasswordHandler);
 authRouter.post("/reset-password", resetPasswordHandler);
