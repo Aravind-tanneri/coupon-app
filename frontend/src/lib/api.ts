@@ -29,7 +29,14 @@ export class ApiClientError extends Error {
   }
 }
 
-const API_BASE = import.meta.env.VITE_API_URL || "/api/v1";
+function getApiBase(): string {
+  const raw = import.meta.env.VITE_API_URL;
+  if (!raw) return "/api/v1";
+  const trimmed = raw.replace(/\/+$/, "");
+  return trimmed.endsWith("/api/v1") ? trimmed : `${trimmed}/api/v1`;
+}
+
+const API_BASE = getApiBase();
 
 interface RequestOptions extends RequestInit {
   params?: Record<string, string | number | boolean | undefined | null>;
@@ -56,6 +63,18 @@ export async function apiRequest<T>(endpoint: string, options: RequestOptions = 
   const defaultHeaders: Record<string, string> = {
     "X-Requested-With": "XMLHttpRequest",
   };
+
+  // Include Bearer token from localStorage if present (for cross-origin environments)
+  if (typeof window !== "undefined") {
+    try {
+      const token = localStorage.getItem("campus_mess_session_token");
+      if (token) {
+        defaultHeaders["Authorization"] = `Bearer ${token}`;
+      }
+    } catch {
+      // Ignore storage access errors in restricted contexts
+    }
+  }
 
   // Only set Content-Type to JSON if not FormData
   if (!(customConfig.body instanceof FormData)) {

@@ -46,8 +46,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [fetchCurrentUser]);
 
   const login = async (email: string, password: string): Promise<AuthUser> => {
-    const data = await api.post<{ user: AuthUser } | AuthUser>("/auth/login", { email, password });
+    const data = await api.post<{ user: AuthUser; sessionToken?: string } | AuthUser>(
+      "/auth/login",
+      { email, password },
+    );
     const currentUser = data && "user" in data && data.user ? data.user : (data as AuthUser);
+    if (data && "sessionToken" in data && typeof data.sessionToken === "string") {
+      try {
+        localStorage.setItem("campus_mess_session_token", data.sessionToken);
+      } catch {
+        // Ignore localStorage errors
+      }
+    }
     setUser(currentUser);
     return currentUser;
   };
@@ -58,6 +68,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch {
       // Ignore network errors on logout
     } finally {
+      try {
+        localStorage.removeItem("campus_mess_session_token");
+      } catch {
+        // Ignore localStorage errors
+      }
       setUser(null);
       window.location.href = "/login";
     }
