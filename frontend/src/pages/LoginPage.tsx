@@ -13,6 +13,7 @@ import {
   QrCode,
 } from "lucide-react";
 import { ResetPasswordModal } from "../components/auth/ResetPasswordModal";
+import gdscLogo from "../assets/gdsc-logo.jpg";
 
 export const LoginPage: React.FC = () => {
   const [email, setEmail] = useState("");
@@ -52,12 +53,6 @@ export const LoginPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleQuickDemoLogin = async (demoEmail: string, demoPassword: string) => {
-    setEmail(demoEmail);
-    setPassword(demoPassword);
-    await handleSubmit(undefined, demoEmail, demoPassword);
   };
 
   const handleFillCredentials = (demoEmail: string, demoPassword: string) => {
@@ -187,95 +182,70 @@ export const LoginPage: React.FC = () => {
             </div>
           </form>
 
-          {/* Quick Demo Login Presets */}
+          {/* Demo Accounts Presets */}
           <div className="mt-6 pt-5 border-t border-slate-200">
             <div className="flex items-center justify-between mb-3">
               <span className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                One-Click Demo Login
-              </span>
-              <span className="text-[10px] font-medium bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full border border-amber-200">
-                Evaluation Mode
+                Demo Accounts
               </span>
             </div>
 
             <div className="space-y-2.5">
-              {/* Super Admin Preset */}
-              <div className="p-3 bg-slate-50 hover:bg-emerald-50/50 rounded-xl border border-slate-200 hover:border-emerald-200 transition-all">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">
-                      <ShieldCheck className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <div className="text-xs font-semibold text-slate-800">Super Admin</div>
-                      <div className="text-[11px] text-slate-500 font-mono">admin@campus.edu</div>
-                    </div>
+              {/* Super Admin Preset Card */}
+              <button
+                type="button"
+                onClick={() => handleFillCredentials("admin@campus.edu", "SuperAdminPassword123!")}
+                className="w-full text-left p-3 bg-slate-50 hover:bg-emerald-50/60 rounded-xl border border-slate-200 hover:border-emerald-300 transition-all flex items-center justify-between group cursor-pointer"
+                title="Click to populate Super Admin credentials"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                    <ShieldCheck className="w-4 h-4" />
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        handleFillCredentials("admin@campus.edu", "SuperAdminPassword123!")
-                      }
-                      className="px-2 py-1 text-[11px] font-medium text-slate-600 bg-white hover:bg-slate-100 rounded-md border border-slate-200 transition-colors"
-                      title="Populate credentials in form"
-                    >
-                      Fill
-                    </button>
-                    <button
-                      type="button"
-                      disabled={loading}
-                      onClick={() =>
-                        handleQuickDemoLogin("admin@campus.edu", "SuperAdminPassword123!")
-                      }
-                      className="px-2.5 py-1 text-[11px] font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-md shadow-sm transition-colors disabled:opacity-50"
-                    >
-                      ⚡ Login
-                    </button>
+                  <div>
+                    <div className="text-xs font-semibold text-slate-800 group-hover:text-emerald-900">
+                      Super Admin
+                    </div>
+                    <div className="text-[11px] text-slate-500 font-mono">admin@campus.edu</div>
                   </div>
                 </div>
-              </div>
+                <span className="text-[11px] font-medium text-slate-400 group-hover:text-emerald-600">
+                  Auto-fill &rarr;
+                </span>
+              </button>
 
-              {/* Counter Staff Preset */}
-              <div className="p-3 bg-slate-50 hover:bg-sky-50/50 rounded-xl border border-slate-200 hover:border-sky-200 transition-all">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center">
-                      <QrCode className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <div className="text-xs font-semibold text-slate-800">Counter Staff</div>
-                      <div className="text-[11px] text-slate-500 font-mono">staff@campus.edu</div>
-                    </div>
+              {/* Counter Staff Preset Card */}
+              <button
+                type="button"
+                onClick={() => handleFillCredentials("staff@campus.edu", "StaffPassword123!")}
+                className="w-full text-left p-3 bg-slate-50 hover:bg-sky-50/60 rounded-xl border border-slate-200 hover:border-sky-300 transition-all flex items-center justify-between group cursor-pointer"
+                title="Click to populate Counter Staff credentials"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center shrink-0">
+                    <QrCode className="w-4 h-4" />
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => handleFillCredentials("staff@campus.edu", "StaffPassword123!")}
-                      className="px-2 py-1 text-[11px] font-medium text-slate-600 bg-white hover:bg-slate-100 rounded-md border border-slate-200 transition-colors"
-                      title="Populate credentials in form"
-                    >
-                      Fill
-                    </button>
-                    <button
-                      type="button"
-                      disabled={loading}
-                      onClick={() => handleQuickDemoLogin("staff@campus.edu", "StaffPassword123!")}
-                      className="px-2.5 py-1 text-[11px] font-semibold text-white bg-sky-600 hover:bg-sky-700 rounded-md shadow-sm transition-colors disabled:opacity-50"
-                    >
-                      ⚡ Login
-                    </button>
+                  <div>
+                    <div className="text-xs font-semibold text-slate-800 group-hover:text-sky-900">
+                      Counter Staff
+                    </div>
+                    <div className="text-[11px] text-slate-500 font-mono">staff@campus.edu</div>
                   </div>
                 </div>
-              </div>
+                <span className="text-[11px] font-medium text-slate-400 group-hover:text-sky-600">
+                  Auto-fill &rarr;
+                </span>
+              </button>
             </div>
           </div>
 
-          <div className="mt-5 pt-4 border-t border-slate-100 text-center">
-            <p className="text-[11px] text-slate-400">
-              Protected by multi-tier rate limiting and CSPRNG session tokens.
-            </p>
+          {/* GDSC & @SolveWithAI Branding */}
+          <div className="mt-6 pt-5 border-t border-slate-100 flex items-center justify-center gap-2 text-xs">
+            <img src={gdscLogo} alt="GDSC NIT AP" className="w-5 h-5 rounded object-contain" />
+            <span className="font-semibold text-slate-700">GDSC NIT AP</span>
+            <span className="text-slate-300">•</span>
+            <span className="font-bold text-emerald-600">@SolveWithAI</span>
           </div>
         </div>
       </div>

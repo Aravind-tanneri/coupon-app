@@ -71,25 +71,24 @@ describe("LoginPage Demo Login & Mock Password Reset Workflow", () => {
   };
 
   describe("Demo Login Presets", () => {
-    it("renders demo login cards for Super Admin and Counter Staff", async () => {
+    it("renders demo login cards with GDSC and @SolveWithAI branding", async () => {
       await renderComponent();
 
-      expect(screen.getByText("One-Click Demo Login")).toBeInTheDocument();
+      expect(screen.getByText("Demo Accounts")).toBeInTheDocument();
       expect(screen.getByText("Super Admin")).toBeInTheDocument();
       expect(screen.getByText("Counter Staff")).toBeInTheDocument();
       expect(screen.getByText("admin@campus.edu")).toBeInTheDocument();
       expect(screen.getByText("staff@campus.edu")).toBeInTheDocument();
+      expect(screen.getByText("GDSC NIT AP")).toBeInTheDocument();
+      expect(screen.getByText("@SolveWithAI")).toBeInTheDocument();
     });
 
-    it("populates credentials into form when Fill button is clicked", async () => {
+    it("populates Super Admin credentials into form when card is clicked", async () => {
       await renderComponent();
 
-      const fillButtons = screen.getAllByRole("button", { name: /^fill$/i });
-      expect(fillButtons.length).toBeGreaterThanOrEqual(2);
-
-      // Click fill for Super Admin
+      const superAdminCard = screen.getByText("Super Admin").closest("button")!;
       await act(async () => {
-        fireEvent.click(fillButtons[0]!);
+        fireEvent.click(superAdminCard);
       });
 
       const emailInput = screen.getByLabelText(/email address/i) as HTMLInputElement;
@@ -100,26 +99,20 @@ describe("LoginPage Demo Login & Mock Password Reset Workflow", () => {
       expect(screen.getByText(/credentials for admin@campus.edu populated/i)).toBeInTheDocument();
     });
 
-    it("triggers one-click login when ⚡ Login button is clicked", async () => {
+    it("populates Counter Staff credentials into form when card is clicked", async () => {
       await renderComponent();
 
-      const quickLoginButtons = screen.getAllByRole("button", { name: /⚡ login/i });
-      expect(quickLoginButtons.length).toBeGreaterThanOrEqual(2);
-
+      const staffCard = screen.getByText("Counter Staff").closest("button")!;
       await act(async () => {
-        fireEvent.click(quickLoginButtons[0]!);
+        fireEvent.click(staffCard);
       });
 
-      const { api } = await import("../lib/api");
-      await waitFor(() => {
-        expect(api.post).toHaveBeenCalledWith(
-          "/auth/login",
-          expect.objectContaining({
-            email: "admin@campus.edu",
-            password: "SuperAdminPassword123!",
-          }),
-        );
-      });
+      const emailInput = screen.getByLabelText(/email address/i) as HTMLInputElement;
+      const passInput = screen.getByLabelText(/^password$/i) as HTMLInputElement;
+
+      expect(emailInput.value).toBe("staff@campus.edu");
+      expect(passInput.value).toBe("StaffPassword123!");
+      expect(screen.getByText(/credentials for staff@campus.edu populated/i)).toBeInTheDocument();
     });
   });
 
