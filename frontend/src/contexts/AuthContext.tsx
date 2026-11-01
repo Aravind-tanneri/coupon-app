@@ -27,8 +27,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchCurrentUser = useCallback(async () => {
     try {
-      const data = await api.get<AuthUser>("/auth/me");
-      setUser(data);
+      const data = await api.get<{ user: AuthUser } | AuthUser>("/auth/me");
+      const currentUser = data && "user" in data && data.user ? data.user : (data as AuthUser);
+      setUser(currentUser);
     } catch (err) {
       if (err instanceof ApiClientError && err.status === 401) {
         setUser(null);
@@ -45,9 +46,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [fetchCurrentUser]);
 
   const login = async (email: string, password: string): Promise<AuthUser> => {
-    const data = await api.post<{ user: AuthUser }>("/auth/login", { email, password });
-    setUser(data.user);
-    return data.user;
+    const data = await api.post<{ user: AuthUser } | AuthUser>("/auth/login", { email, password });
+    const currentUser = data && "user" in data && data.user ? data.user : (data as AuthUser);
+    setUser(currentUser);
+    return currentUser;
   };
 
   const logout = async (): Promise<void> => {
@@ -65,7 +67,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     (permission: string): boolean => {
       if (!user) return false;
       if (user.role === "SUPER_ADMIN") return true;
-      return user.permissions.includes(permission);
+      return Array.isArray(user.permissions) ? user.permissions.includes(permission) : false;
     },
     [user],
   );

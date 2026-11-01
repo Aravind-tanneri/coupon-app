@@ -84,7 +84,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onMobileClose }) =
             <div>
               <h1 className="font-semibold text-white tracking-tight text-sm">Campus Mess</h1>
               <span className="text-[10px] text-emerald-400 font-mono uppercase tracking-wider block">
-                {user?.role.replace("_", " ") || "STAFF"}
+                {user?.role?.replace("_", " ") || "STAFF"}
               </span>
             </div>
           </div>

@@ -24,6 +24,7 @@ export const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   PORT: z.coerce.number().int().positive().default(3000),
   FRONTEND_URL: z.string().url().default("http://localhost:5173"),
+  BACKEND_URL: z.string().url().optional(),
 
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
   DEFAULT_MESS_CODE: z.string().min(1).default("AKSHAYA"),
